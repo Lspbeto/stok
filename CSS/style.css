@@ -44,7 +44,8 @@ label {
   font-size: 0.9rem;
 }
 
-input, select {
+input,
+select {
   width: 100%;
   padding: 8px;
   border: 1px solid #ccc;
@@ -134,13 +135,15 @@ table {
   margin-top: 8px;
 }
 
-th, td {
+th,
+td {
   border-bottom: 1px solid #eee;
   padding: 8px;
   text-align: left;
 }
 
-th.n, td.n {
+th.n,
+td.n {
   text-align: right;
 }
 
