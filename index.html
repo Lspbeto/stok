@@ -1,268 +1,249 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Controle de produtos</title>
-<link rel="stylesheet" href="../TBT/CSS/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Gestão e Despensa</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Único <main> da página (o de dentro foi trocado por <div>, veja abaixo) -->
-<main>
+  <main id="painel-principal">
 
-<!-- TELA DE LOGIN / CADASTRO -->
-<section id="telaAuth" class="auth card">
-  <header class="cabecalho">
-    <h1 class="titulo-sublinhado">🍽️ Controle de Validade de Estoque</h1>
-    <p><strong>Processo necessário para monitorar, organizar e gerenciar
-        produtos com data de validade próxima do vencimento.
-      </strong></p>
-    <hr>
-  </header>
+    <!-- TELA DE LOGIN / CADASTRO DE CONTA -->
+    <section id="telaAuth" class="auth card">
+      <h1 id="authTitulo">Entrar</h1>
+      <p class="sub" id="authSub">Use seu usuário e senha.</p>
+      
+      <div class="field">
+        <label for="aUser">Usuário</label>
+        <input id="aUser" autocomplete="username">
+      </div>
 
-  <!-- ALTERAÇÃO: era <h1>. Uma página deve ter apenas um <h1> (o título do cabeçalho acima).
-       Mantive o id="authTitulo" para o script.js continuar funcionando.
-       Se o CSS estilizava "h1" aqui, use a classe/ID para ajustar o tamanho. -->
-  <h2 id="authTitulo">Entrar</h2>
+      <div class="field">
+        <label for="aPass">Senha</label>
+        <input id="aPass" type="password" autocomplete="current-password">
+      </div>
 
-  <p class="sub" id="authSub">Use seu usuário e senha.</p>
-  <label for="aUser">Usuário</label>
-  <input id="aUser" autocomplete="username">
-  <label for="aPass">Senha</label>
-  <input id="aPass" type="password" autocomplete="current-password">
-  <div id="boxConfirma" class="hidden">
-    <label for="aPass2">Confirmar senha</label>
-    <input id="aPass2" type="password" autocomplete="new-password">
-  </div>
-  <p class="msg" id="authMsg" role="alert"></p>
-  <div class="row" style="margin-top:6px">
-    <button id="btnAuth">Entrar</button>
-    <button class="link" id="btnTroca" type="button">Criar uma conta</button>
-  </div>
-</section>
+      <div id="boxConfirma" class="hidden field">
+        <label for="aPass2">Confirmar senha</label>
+        <input id="aPass2" type="password" autocomplete="new-password">
+      </div>
 
-<!-- TELA DO SISTEMA -->
-<section id="telaApp" class="hidden">
-  <div class="top">
-    <div>
-      <h1>Controle de produtos</h1>
-      <div class="sub" style="margin:0">Logado como <strong id="nomeLogado"></strong></div>
-    </div>
-    <button class="sec" id="btnSair">Sair</button>
-  </div>
+      <p class="msg" id="authMsg" role="alert"></p>
 
-  <!-- ALTERAÇÃO: era um segundo <main> dentro do <main> externo (só pode existir um por página).
-       Trocado por <div>, mantendo o id "painel-principal" caso o CSS use. -->
-  <div id="painel-principal">
-    <h2>Painel de despensa</h2>
-
-    <p>
-      Controle de ingredientes e seus respectivos prazos de validade.
-    </p>
-    <section>
-      <h3>Resumo do Estoque</h3>
-      <!-- Números conferem com a tabela (5 produtos), data de referência 08/10/2026:
-           Arroz e Feijão = no prazo; Leite, Frango e Tomate = vencidos -->
-      <ul>
-        <li> 🟢 Produtos dentro da validade: <strong>2</strong> </li>
-        <li> 🟡 Produtos próximos do vencimento: <strong>0</strong> </li>
-        <li> 🔴 Produtos vencidos: <strong>3</strong> </li>
-      </ul>
+      <div class="row" style="margin-top:12px">
+        <button id="btnAuth" type="button">Entrar</button>
+        <button class="link" id="btnTroca" type="button">Criar uma conta</button>
+      </div>
     </section>
-    <hr>
-    <section>
-      <h3>🚦 Situação dos Produtos</h3>
-      <p> 🟢 <strong>Verde:</strong> produto dentro do prazo. </p>
-      <p> 🟡 <strong>Amarelo:</strong> produto próximo do vencimento. </p>
-      <p> 🔴 <strong>Vermelho:</strong> produto vencido. </p>
-    </section>
-    <hr>
-    <section id="produtos">
-      <h2>📦 Cadastro de Produtos</h2>
-      <!-- ALTERAÇÃO: adicionado id="formProduto" para o script.js conseguir selecionar o formulário
-           e usar preventDefault() (sem isso, o submit recarrega a página e perde os dados). -->
-      <form id="formProduto">
-        <label for="produto"> Nome do ingrediente: </label>
-        <br>
-        <input type="text" id="produto" name="produto" placeholder="Ex: Arroz" required>
-        <br><br>
-        <label for="categoria"> Categoria: </label>
-        <br>
-        <select id="categoria" name="categoria" required>
-          <option value=""> Selecione </option>
-          <option value="graos"> Grãos </option>
-          <option value="carnes"> Carnes </option>
-          <option value="verduras"> Verduras </option>
-          <option value="frutas"> Frutas </option>
-          <option value="laticinios"> Laticínios </option>
-          <option value="temperos"> Temperos </option>
-          <option value="legumes">Legumes</option>
-          <option value="outros"> Outros </option>
-        </select>
-        <br><br>
-        <label for="quantidade"> Quantidade: </label>
-        <br>
-        <input type="number" id="quantidade" name="quantidade" min="1" placeholder="Ex: 10" required>
-        <br><br>
-        <label for="unidade"> Unidade: </label>
-        <br>
-        <select id="unidade" name="unidade">
-          <option value="kg"> Quilograma (kg) </option>
-          <option value="g"> Grama (g) </option>
-          <option value="l"> Litro (L) </option>
-          <option value="unidade"> Unidade </option>
-          <option value="caixa"> Caixa </option>
-        </select>
-        <br><br>
-        <label for="validade"> Data de validade: </label>
-        <br>
-        <input type="date" id="validade" name="validade" required>
-        <br><br>
-        <label for="local"> Local de armazenamento: </label>
-        <br>
-        <input type="text" id="local" name="local" placeholder="Ex: Prateleira 2">
-        <br><br>
-        <label for="valor">Preço do produto R$:</label>
-        <br>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Digite o preço em R$">
-        <br><br>
-        <button type="submit"> ➕ Adicionar Produto </button>
-      </form>
-    </section>
-    <hr>
-    <section>
-      <h2>📋 Lista de Ingredientes</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Categoria</th>
-            <th>Quantidade</th>
-            <th>Validade</th>
-            <th>Prazo</th>
-            <th>Status</th>
-            <th>Local</th>
-          </tr>
-        </thead>
-        <!-- ALTERAÇÃO: o <tbody> agora contém as 5 linhas, cada uma com exatamente 7 células.
-             Hoje de referência: 08/10/2026. -->
-        <tbody>
-          <tr>
-            <td>Arroz</td>
-            <td>Grãos</td>
-            <td>20 kg</td>
-            <td>20/12/2026</td>
-            <td>73 dias</td>
-            <td> 🟢 Dentro da validade </td>
-            <td>Prateleira 1</td>
-          </tr>
-          <tr>
-            <td>Leite</td>
-            <td>Laticínios</td>
-            <td>10 L</td>
-            <td>08/10/2026</td>
-            <td>0 dias</td>
-            <td> 🔴 Vencido </td>
-            <td>Geladeira 1</td>
-          </tr>
-          <!-- ALTERAÇÃO: a linha do Frango estava misturada com dados de outro item (10 células).
-               Separei em duas linhas: Frango e Tomate. -->
-          <tr>
-            <td>Frango</td>
-            <td>Carnes</td>
-            <td>5 kg</td>
-            <td>28/09/2026</td>
-            <td>-10 dias</td>
-            <td> 🔴 Vencido </td>
-            <!-- O local "Freezer 2" veio do fragmento solto no fim do arquivo original.
-                 Confirme se é esse mesmo. -->
-            <td>Freezer 2</td>
-          </tr>
-          <!-- ALTERAÇÃO: linha do Tomate reconstruída e movida para dentro da tabela.
-               Estava solta no fim do arquivo, sem validade. A data 05/10/2026 e o local
-               Geladeira 2 vieram da linha corrompida do Frango (-3 dias bate com o alerta). -->
-          <tr>
-            <td>Tomate</td>
-            <td>Verduras</td>
-            <td>8 kg</td>
-            <td>05/10/2026</td>
-            <td>-3 dias</td>
-            <td> 🔴 Vencido </td>
-            <td>Geladeira 2</td>
-          </tr>
-          <tr>
-            <td>Feijão</td>
-            <td>Grãos</td>
-            <td>15 kg</td>
-            <td>15/11/2026</td>
-            <td>38 dias</td>
-            <td> 🟢 Dentro da validade </td>
-            <td>Prateleira 2</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-    <hr>
-    <section>
-      <h2>⚠️ Alertas de Validade</h2>
-      <!-- Agora todos os alertas têm um produto correspondente na tabela -->
-      <article role="alert">
-        <h3>🔴 Produto vencido</h3>
-        <p> O leite vence hoje (0 dias) e, pela regra, é considerado vencido. Retire-o do estoque. </p>
-        <hr>
-      </article>
-      <article role="alert">
-        <h3>🔴 Produto vencido</h3>
-        <p> O tomate está vencido há 3 dias. Retire o produto do estoque. </p>
-        <hr>
-      </article>
-      <article role="alert">
-        <h3>🔴 Produto vencido</h3>
-        <p> O frango está vencido há 10 dias. Retire o produto do estoque e faça a verificação necessária. </p>
-      </article>
-    </section>
-    <hr>
-    <section>
-      <h2>📅 Regra de Controle de Validade</h2>
-      <p> O sistema pode utilizar a seguinte regra: </p>
-      <ul>
-        <li> 🟢 Mais de 7 dias: Dentro da validade </li>
-        <li> 🟡 Entre 1 e 7 dias: Próximo do vencimento </li>
-        <li> 🔴 0 dias ou menos: Produto vencido </li>
-      </ul>
-      <p> <strong>Exemplo:</strong> </p>
-      <p> Data atual: 08/10/2026 </p>
-      <p> Data de validade: 14/10/2026 </p>
-      <p> Resultado: 6 dias restantes → 🟡 Próximo do vencimento. </p>
-    </section>
-  </div>
-  <!-- ALTERAÇÃO: fim do #painel-principal (antes era </main> interno) -->
-  <hr>
-  <footer id="rodape">
-    <p> 🍽️ Sistema de Controle de Validade da Despensa </p>
-    <!-- ALTERAÇÃO: texto atualizado, o projeto também usa CSS e JavaScript -->
-    <p> Projeto desenvolvido em HTML, CSS e JavaScript. </p>
-  </footer>
 
-  <!-- ALTERAÇÃO: o </html> que ficava aqui foi removido (ele encerrava o documento no meio).
-       O bloco abaixo agora está dentro de #telaApp, onde estava a intenção original. -->
-  <div class="card">
-    <h2>Cadastrar usuário</h2>
-    <div class="row">
-      <div><label for="uNome">Usuário</label><input id="uNome" autocomplete="off"></div>
-      <div><label for="uSenha">Senha</label><input id="uSenha" type="password" autocomplete="new-password"></div>
-      <div style="flex:0 0 auto"><button id="btnUsuario">Cadastrar</button></div>
-    </div>
-    <p class="msg" id="userMsg" role="alert"></p>
-    <div class="scroll"><table>
-      <thead><tr><th>Usuários cadastrados</th><th></th></tr></thead>
-      <tbody id="listaUsuarios"></tbody>
-    </table></div>
-  </div>
-</section>
-<!-- ALTERAÇÃO: este </section> agora fecha corretamente #telaApp -->
+    <!-- TELA DO SISTEMA (APÓS LOGIN) -->
+    <section id="telaApp" class="hidden">
+      <!-- CABEÇALHO -->
+      <div class="top card">
+        <div>
+          <h1>Controle de Produtos e Despensa</h1>
+          <div class="sub" style="margin:0">Logado como <strong id="nomeLogado"></strong></div>
+        </div>
+        <button class="sec" id="btnSair" type="button">Sair</button>
+      </div>
 
-</main>
-<script src="../TBT/JS/script.js"></script>
+      <!-- NAVEGAÇÃO DE ABAS -->
+      <nav class="tabs card">
+        <button class="tab-btn active" data-tab="tabDespensa">🥑 Painel da Despensa</button>
+        <button class="tab-btn" data-tab="tabProdutos">📦 Produtos Gerais</button>
+        <button class="tab-btn" data-tab="tabUsuarios">👤 Gestão de Usuários</button>
+      </nav>
+
+      <!-- ABA 1: PAINEL DA DESPENSA -->
+      <div id="tabDespensa" class="tab-content">
+        <!-- RESUMO -->
+        <section aria-labelledby="titulo-resumo" class="card">
+          <h2 id="titulo-resumo">Resumo do estoque</h2>
+          <p>Data de referência: <strong id="dataHoje"></strong></p>
+          <ul id="resumo">
+            <li>🟢 Produtos dentro da validade: <strong id="qtdVerde">0</strong></li>
+            <li>🟡 Produtos próximos do vencimento: <strong id="qtdAmarelo">0</strong></li>
+            <li>🔴 Produtos vencidos: <strong id="qtdVermelho">0</strong></li>
+          </ul>
+        </section>
+
+        <!-- LEGENDA -->
+        <section aria-labelledby="titulo-legenda" class="card">
+          <h2 id="titulo-legenda">🚦 Situação dos produtos</h2>
+          <p>🟢 <strong>Verde:</strong> produto dentro do prazo (mais de 7 dias).</p>
+          <p>🟡 <strong>Amarelo:</strong> produto próximo do vencimento (1 a 7 dias).</p>
+          <p>🔴 <strong>Vermelho:</strong> produto vencido (vence hoje ou já passou).</p>
+        </section>
+
+        <!-- FORMULÁRIO DE CADASTRO DE INGREDIENTES -->
+        <section id="produtos-despensa" aria-labelledby="titulo-cadastro-despensa" class="card">
+          <h2 id="titulo-cadastro-despensa">📦 Cadastrar ingrediente na despensa</h2>
+          <form id="formProduto">
+            <div class="form-grid">
+              <div>
+                <label for="produto">Nome do ingrediente</label>
+                <input type="text" id="produto" name="produto" placeholder="Ex: Arroz" required>
+              </div>
+
+              <div>
+                <label for="categoria">Categoria</label>
+                <select id="categoria" name="categoria" required>
+                  <option value="">Selecione</option>
+                  <option value="Grãos">Grãos</option>
+                  <option value="Carnes">Carnes</option>
+                  <option value="Verduras">Verduras</option>
+                  <option value="Frutas">Frutas</option>
+                  <option value="Laticínios">Laticínios</option>
+                  <option value="Temperos">Temperos</option>
+                  <option value="Legumes">Legumes</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="quantidade">Quantidade</label>
+                <input type="number" id="quantidade" name="quantidade" min="0.01" step="any" placeholder="Ex: 10" required>
+              </div>
+
+              <div>
+                <label for="unidade">Unidade</label>
+                <select id="unidade" name="unidade">
+                  <option value="kg">Quilograma (kg)</option>
+                  <option value="g">Grama (g)</option>
+                  <option value="L">Litro (L)</option>
+                  <option value="un">Unidade</option>
+                  <option value="cx">Caixa</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="validade">Data de validade</label>
+                <input type="date" id="validade" name="validade" required>
+              </div>
+
+              <div>
+                <label for="local">Local de armazenamento</label>
+                <input type="text" id="local" name="local" placeholder="Ex: Prateleira 2">
+              </div>
+
+              <div>
+                <label for="valor">Preço do produto (R$)</label>
+                <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Ex: 12,50">
+              </div>
+            </div>
+
+            <button type="submit" style="margin-top: 12px;">➕ Adicionar à Despensa</button>
+          </form>
+        </section>
+
+        <!-- LISTA DE INGREDIENTES DA DESPENSA -->
+        <section aria-labelledby="titulo-lista" class="card">
+          <h2 id="titulo-lista">📋 Lista de ingredientes</h2>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Produto</th>
+                  <th scope="col">Categoria</th>
+                  <th scope="col">Quantidade</th>
+                  <th scope="col">Validade</th>
+                  <th scope="col">Prazo</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Local</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="corpoTabela"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ALERTAS -->
+        <section aria-labelledby="titulo-alertas" class="card">
+          <h2 id="titulo-alertas">⚠️ Alertas de validade</h2>
+          <div id="alertas"></div>
+        </section>
+      </div>
+
+      <!-- ABA 2: PRODUTOS GERAIS (SIMPLES) -->
+      <div id="tabProdutos" class="tab-content hidden">
+        <div class="card">
+          <h2>Cadastrar produto rápido</h2>
+          <div class="row">
+            <div style="flex-basis:220px">
+              <label for="pNome">Nome</label>
+              <input id="pNome">
+            </div>
+            <div>
+              <label for="pPreco">Preço (R$)</label>
+              <input id="pPreco" type="number" min="0" step="0.01">
+            </div>
+            <div>
+              <label for="pQtd">Quantidade</label>
+              <input id="pQtd" type="number" min="0" step="1">
+            </div>
+            <div style="flex:0 0 auto">
+              <button id="btnProduto" type="button">Adicionar</button>
+            </div>
+          </div>
+          <p class="msg" id="prodMsg" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h2>Produtos cadastrados</h2>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th class="n">Preço</th>
+                  <th class="n">Qtd</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listaProdutos"></tbody>
+            </table>
+          </div>
+          <div class="vazio hidden" id="vazioProd">Nenhum produto cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- ABA 3: GESTÃO DE USUÁRIOS -->
+      <div id="tabUsuarios" class="tab-content hidden">
+        <div class="card">
+          <h2>Cadastrar usuário</h2>
+          <div class="row">
+            <div>
+              <label for="uNome">Usuário</label>
+              <input id="uNome" autocomplete="off">
+            </div>
+            <div>
+              <label for="uSenha">Senha</label>
+              <input id="uSenha" type="password" autocomplete="new-password">
+            </div>
+            <div style="flex:0 0 auto">
+              <button id="btnUsuario" type="button">Cadastrar</button>
+            </div>
+          </div>
+          <p class="msg" id="userMsg" role="alert"></p>
+
+          <div class="scroll" style="margin-top: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuários cadastrados</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listaUsuarios"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <script src="script.js"></script>
 </body>
 </html>
