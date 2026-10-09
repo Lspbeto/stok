@@ -1,35 +1,18 @@
-<!doctype html>
-<html lang="pt-br">
-
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <!-- CORREÇÃO: faltava a meta viewport; sem ela a página não se ajusta bem em celulares -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet" href="./CSS/style.css">
-  <title>Projeto prático</title>
-
-  <!-- CORREÇÃO: estilos movidos para CSS, pois <u> e border="2" são obsoletos/desaconselhados em HTML -->
-  <!-- <style>
-        .titulo-sublinhado {
-            text-decoration: underline;
-        }
-
-        table {
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            border: 1px solid #000;
-            padding: 6px 10px;
-        }
-    </style> -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle de produtos</title>
+<link rel="stylesheet" href="../TBT/CSS/style.css">
 </head>
-
 <body>
+<!-- Único <main> da página (o de dentro foi trocado por <div>, veja abaixo) -->
+<main>
+
+<!-- TELA DE LOGIN / CADASTRO -->
+<section id="telaAuth" class="auth card">
   <header class="cabecalho">
-    <!-- CORREÇÃO: removida a tag <u> dentro do <h1>; o sublinhado agora vem do CSS (classe titulo-sublinhado) -->
     <h1 class="titulo-sublinhado">🍽️ Controle de Validade de Estoque</h1>
     <p><strong>Processo necessário para monitorar, organizar e gerenciar
         produtos com data de validade próxima do vencimento.
@@ -37,41 +20,40 @@
     <hr>
   </header>
 
-  <!-- CORREÇÃO: o cadastro de usuário estava dentro do <header> principal.
-         Agora é uma <section> separada, mantendo o cabeçalho só com o título e a descrição -->
-  <section class="cadastro">
-    <h2>Cadastro de Usuário</h2>
+  <!-- ALTERAÇÃO: era <h1>. Uma página deve ter apenas um <h1> (o título do cabeçalho acima).
+       Mantive o id="authTitulo" para o script.js continuar funcionando.
+       Se o CSS estilizava "h1" aqui, use a classe/ID para ajustar o tamanho. -->
+  <h2 id="authTitulo">Entrar</h2>
 
-    <form id="formulario">
-      <label for="usuario">Usuário:</label>
-      <br>
-      <!-- CORREÇÃO: "usário" → "usuário" (erro de digitação) e adicionados name e autocomplete -->
-      <input type="text" id="usuario" name="usuario" placeholder="Digite seu nome de usuário" autocomplete="username"
-        required>
-      <br><br>
-      <label for="senha">Senha:</label>
-      <br>
-      <!-- CORREÇÃO: adicionados name e autocomplete="new-password" para o navegador tratar como cadastro -->
-      <input type="password" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="new-password"
-        required>
-      <br><br>
-      <label for="ConfirmarSenha">Confirmar Senha:</label>
-      <br>
-      <input type="password" id="ConfirmarSenha" name="ConfirmarSenha" placeholder="Digite a senha novamente"
-        autocomplete="new-password" required>
-      <br><br>
-      <!-- CORREÇÃO: os dois botões eram type="submit" e faziam a mesma coisa.
-                 "Entrar" agora é type="button" (será tratado por JavaScript no futuro) e
-                 "Criar Conta" continua como submit do formulário -->
-      <button type="button">Entrar</button>
-      <br><br>
-      <button type="submit">Criar Conta</button>
-    </form>
-    <hr>
-  </section>
+  <p class="sub" id="authSub">Use seu usuário e senha.</p>
+  <label for="aUser">Usuário</label>
+  <input id="aUser" autocomplete="username">
+  <label for="aPass">Senha</label>
+  <input id="aPass" type="password" autocomplete="current-password">
+  <div id="boxConfirma" class="hidden">
+    <label for="aPass2">Confirmar senha</label>
+    <input id="aPass2" type="password" autocomplete="new-password">
+  </div>
+  <p class="msg" id="authMsg" role="alert"></p>
+  <div class="row" style="margin-top:6px">
+    <button id="btnAuth">Entrar</button>
+    <button class="link" id="btnTroca" type="button">Criar uma conta</button>
+  </div>
+</section>
 
-  <!-- CORREÇÃO: id="painel principal" tinha espaço, o que é inválido em HTML. Agora é "painel-principal" -->
-  <main id="painel-principal">
+<!-- TELA DO SISTEMA -->
+<section id="telaApp" class="hidden">
+  <div class="top">
+    <div>
+      <h1>Controle de produtos</h1>
+      <div class="sub" style="margin:0">Logado como <strong id="nomeLogado"></strong></div>
+    </div>
+    <button class="sec" id="btnSair">Sair</button>
+  </div>
+
+  <!-- ALTERAÇÃO: era um segundo <main> dentro do <main> externo (só pode existir um por página).
+       Trocado por <div>, mantendo o id "painel-principal" caso o CSS use. -->
+  <div id="painel-principal">
     <h2>Painel de despensa</h2>
 
     <p>
@@ -79,8 +61,8 @@
     </p>
     <section>
       <h3>Resumo do Estoque</h3>
-      <!-- CORREÇÃO: os números (8, 3, 2) não correspondiam à tabela, que tem 5 produtos.
-                 Recalculados com a data de hoje (08/10/2026): 2 no prazo, 0 próximos, 3 vencidos -->
+      <!-- Números conferem com a tabela (5 produtos), data de referência 08/10/2026:
+           Arroz e Feijão = no prazo; Leite, Frango e Tomate = vencidos -->
       <ul>
         <li> 🟢 Produtos dentro da validade: <strong>2</strong> </li>
         <li> 🟡 Produtos próximos do vencimento: <strong>0</strong> </li>
@@ -97,15 +79,15 @@
     <hr>
     <section id="produtos">
       <h2>📦 Cadastro de Produtos</h2>
-      <form>
+      <!-- ALTERAÇÃO: adicionado id="formProduto" para o script.js conseguir selecionar o formulário
+           e usar preventDefault() (sem isso, o submit recarrega a página e perde os dados). -->
+      <form id="formProduto">
         <label for="produto"> Nome do ingrediente: </label>
         <br>
         <input type="text" id="produto" name="produto" placeholder="Ex: Arroz" required>
         <br><br>
         <label for="categoria"> Categoria: </label>
         <br>
-        <!-- CORREÇÃO: adicionado required; antes era possível enviar sem escolher categoria
-                     (a opção "Selecione" tem value vazio, então o required a bloqueia) -->
         <select id="categoria" name="categoria" required>
           <option value=""> Selecione </option>
           <option value="graos"> Grãos </option>
@@ -120,7 +102,6 @@
         <br><br>
         <label for="quantidade"> Quantidade: </label>
         <br>
-        <!-- CORREÇÃO: adicionado required, pois a quantidade é essencial para o controle -->
         <input type="number" id="quantidade" name="quantidade" min="1" placeholder="Ex: 10" required>
         <br><br>
         <label for="unidade"> Unidade: </label>
@@ -143,17 +124,14 @@
         <br><br>
         <label for="valor">Preço do produto R$:</label>
         <br>
-        <!-- CORREÇÃO: faltavam name, step="0.01" (para aceitar centavos) e min="0" (sem preço negativo) -->
         <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Digite o preço em R$">
         <br><br>
-        <!-- CORREÇÃO: removido um segundo <label for="quantidade"> duplicado que não tinha campo associado -->
         <button type="submit"> ➕ Adicionar Produto </button>
       </form>
     </section>
     <hr>
     <section>
       <h2>📋 Lista de Ingredientes</h2>
-      <!-- CORREÇÃO: removido border="2" (atributo obsoleto); a borda agora é feita no CSS -->
       <table>
         <thead>
           <tr>
@@ -166,16 +144,14 @@
             <th>Local</th>
           </tr>
         </thead>
+        <!-- ALTERAÇÃO: o <tbody> agora contém as 5 linhas, cada uma com exatamente 7 células.
+             Hoje de referência: 08/10/2026. -->
         <tbody>
-          <!-- CORREÇÃO (todas as linhas): as células Prazo e Status estavam invertidas em relação ao
-                         cabeçalho. Agora a ordem é: Prazo (dias) → Status (emoji).
-                         Os dias foram recalculados usando a data de hoje: 08/10/2026 -->
           <tr>
             <td>Arroz</td>
             <td>Grãos</td>
             <td>20 kg</td>
             <td>20/12/2026</td>
-            <!-- CORREÇÃO: eram 45 dias; de 08/10 até 20/12 são 73 dias -->
             <td>73 dias</td>
             <td> 🟢 Dentro da validade </td>
             <td>Prateleira 1</td>
@@ -185,28 +161,31 @@
             <td>Laticínios</td>
             <td>10 L</td>
             <td>08/10/2026</td>
-            <!-- CORREÇÃO: eram "8 dias" e 🟡. Vence hoje (0 dias) e, pela regra, 0 dias = vencido -->
             <td>0 dias</td>
             <td> 🔴 Vencido </td>
             <td>Geladeira 1</td>
           </tr>
+          <!-- ALTERAÇÃO: a linha do Frango estava misturada com dados de outro item (10 células).
+               Separei em duas linhas: Frango e Tomate. -->
           <tr>
             <td>Frango</td>
             <td>Carnes</td>
             <td>5 kg</td>
             <td>28/09/2026</td>
-            <!-- CORREÇÃO: faltava a célula de prazo (linha com 6 células em vez de 7).
-                             Vencido há 10 dias -->
             <td>-10 dias</td>
             <td> 🔴 Vencido </td>
+            <!-- O local "Freezer 2" veio do fragmento solto no fim do arquivo original.
+                 Confirme se é esse mesmo. -->
             <td>Freezer 2</td>
           </tr>
+          <!-- ALTERAÇÃO: linha do Tomate reconstruída e movida para dentro da tabela.
+               Estava solta no fim do arquivo, sem validade. A data 05/10/2026 e o local
+               Geladeira 2 vieram da linha corrompida do Frango (-3 dias bate com o alerta). -->
           <tr>
             <td>Tomate</td>
             <td>Verduras</td>
             <td>8 kg</td>
             <td>05/10/2026</td>
-            <!-- CORREÇÃO: eram "7 dias" e 🟡. A data 05/10 já passou: vencido há 3 dias -->
             <td>-3 dias</td>
             <td> 🔴 Vencido </td>
             <td>Geladeira 2</td>
@@ -216,7 +195,6 @@
             <td>Grãos</td>
             <td>15 kg</td>
             <td>15/11/2026</td>
-            <!-- CORREÇÃO: eram 50 dias; de 08/10 até 15/11 são 38 dias -->
             <td>38 dias</td>
             <td> 🟢 Dentro da validade </td>
             <td>Prateleira 2</td>
@@ -227,8 +205,7 @@
     <hr>
     <section>
       <h2>⚠️ Alertas de Validade</h2>
-      <!-- CORREÇÃO: os alertas estavam desatualizados (leite "8 dias", tomate "7 dias").
-                 Agora refletem os dados reais da tabela e usam role="alert" para acessibilidade -->
+      <!-- Agora todos os alertas têm um produto correspondente na tabela -->
       <article role="alert">
         <h3>🔴 Produto vencido</h3>
         <p> O leite vence hoje (0 dias) e, pela regra, é considerado vencido. Retire-o do estoque. </p>
@@ -254,20 +231,38 @@
         <li> 🔴 0 dias ou menos: Produto vencido </li>
       </ul>
       <p> <strong>Exemplo:</strong> </p>
-      <!-- CORREÇÃO: o exemplo usava 02/10/2026 como "data atual", inconsistente com o restante da página.
-                 Agora usa a data de hoje (08/10/2026) e uma validade de 14/10/2026 (6 dias) -->
       <p> Data atual: 08/10/2026 </p>
       <p> Data de validade: 14/10/2026 </p>
       <p> Resultado: 6 dias restantes → 🟡 Próximo do vencimento. </p>
     </section>
-  </main>
+  </div>
+  <!-- ALTERAÇÃO: fim do #painel-principal (antes era </main> interno) -->
   <hr>
   <footer id="rodape">
     <p> 🍽️ Sistema de Controle de Validade da Despensa </p>
-    <p> Projeto desenvolvido em HTML. </p>
+    <!-- ALTERAÇÃO: texto atualizado, o projeto também usa CSS e JavaScript -->
+    <p> Projeto desenvolvido em HTML, CSS e JavaScript. </p>
   </footer>
-</body>
-<script src="JS/script.js"></script>
 
+  <!-- ALTERAÇÃO: o </html> que ficava aqui foi removido (ele encerrava o documento no meio).
+       O bloco abaixo agora está dentro de #telaApp, onde estava a intenção original. -->
+  <div class="card">
+    <h2>Cadastrar usuário</h2>
+    <div class="row">
+      <div><label for="uNome">Usuário</label><input id="uNome" autocomplete="off"></div>
+      <div><label for="uSenha">Senha</label><input id="uSenha" type="password" autocomplete="new-password"></div>
+      <div style="flex:0 0 auto"><button id="btnUsuario">Cadastrar</button></div>
+    </div>
+    <p class="msg" id="userMsg" role="alert"></p>
+    <div class="scroll"><table>
+      <thead><tr><th>Usuários cadastrados</th><th></th></tr></thead>
+      <tbody id="listaUsuarios"></tbody>
+    </table></div>
+  </div>
+</section>
+<!-- ALTERAÇÃO: este </section> agora fecha corretamente #telaApp -->
+
+</main>
+<script src="../TBT/JS/script.js"></script>
+</body>
 </html>
-<!-- CORREÇÃO: removidas as tags </main></body></html> que apareciam repetidas depois do </html> final -->

@@ -1,239 +1,195 @@
-// ===== Controle de Validade de Estoque (sem banco de dados) =====
-// Os dados ficam apenas na memória da página. Ao recarregar, voltam os exemplos.
+// ---------- "Banco de dados" em memória + localStorage ----------
+const memoria = {};
 
-const CATEGORIAS = {
-    graos: "Grãos",
-    carnes: "Carnes",
-    verduras: "Verduras",
-    frutas: "Frutas",
-    laticinios: "Laticínios",
-    temperos: "Temperos",
-    legumes: "Legumes",
-    outros: "Outros",
-};
-
-const UNIDADES = {
-    kg: "kg",
-    g: "g",
-    l: "L",
-    unidade: "un",
-    caixa: "cx",
-};
-
-// Lista em memória, começando com produtos de exemplo
-const produtos = [
-    { nome: "Arroz", categoria: "graos", quantidade: 20, unidade: "kg", validade: "2026-12-20", local: "Prateleira 1" },
-    { nome: "Leite", categoria: "laticinios", quantidade: 10, unidade: "l", validade: "2026-10-08", local: "Geladeira 1" },
-    { nome: "Frango", categoria: "carnes", quantidade: 5, unidade: "kg", validade: "2026-09-28", local: "Freezer 2" },
-    { nome: "Tomate", categoria: "verduras", quantidade: 8, unidade: "kg", validade: "2026-10-05", local: "Geladeira 2" },
-    { nome: "Feijão", categoria: "graos", quantidade: 15, unidade: "kg", validade: "2026-11-15", local: "Prateleira 2" },
-];
-
-// ===== Datas e status =====
-
-// Converte "AAAA-MM-DD" em Date local (evita problemas de fuso horário)
-function parseData(texto) {
-    const [ano, mes, dia] = texto.split("-").map(Number);
-    return new Date(ano, mes - 1, dia);
+function ler(chave, padrao) {
+  try {
+    const v = localStorage.getItem(chave);
+    return v ? JSON.parse(v) : padrao;
+  } catch (e) {
+    return memoria[chave] !== undefined ? memoria[chave] : padrao;
+  }
 }
 
-function formatarData(texto) {
-    const [ano, mes, dia] = texto.split("-");
-    return `${dia}/${mes}/${ano}`;
+function gravar(chave, valor) {
+  try {
+    localStorage.setItem(chave, JSON.stringify(valor));
+  } catch (e) {
+    memoria[chave] = valor;
+  }
 }
 
-function diasRestantes(validade) {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return Math.round((parseData(validade) - hoje) / 86400000);
+let usuarios = ler("usuarios", []);   // [{usuario, hash}]
+let produtos = ler("produtos", []);   // [{id, nome, preco, qtd}]
+let sessao   = ler("sessao", null);   // nome do usuário logado ou null
+
+// ---------- Utilidades ----------
+const $ = (id) => document.getElementById(id);
+
+async function gerarHash(usuario, senha) {
+  const dados = new TextEncoder().encode(usuario.toLowerCase() + ":" + senha);
+  const buf = await crypto.subtle.digest("SHA-256", dados);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function textoPrazo(dias) {
-    return Math.abs(dias) === 1 ? `${dias} dia` : `${dias} dias`;
+function msg(el, texto, ok) {
+  el.textContent = texto;
+  el.className = "msg" + (ok ? " ok" : "");
 }
 
-// Regra: >7 verde | 1 a 7 amarelo | 0 ou menos vermelho
-function obterStatus(dias) {
-    if (dias > 7) return { cor: "verde", texto: "🟢 Dentro da validade" };
-    if (dias >= 1) return { cor: "amarelo", texto: "🟡 Próximo do vencimento" };
-    return { cor: "vermelho", texto: "🔴 Vencido" };
+const brl = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+async function criarUsuario(usuario, senha) {
+  usuario = usuario.trim();
+  if (usuario.length < 3) return "O usuário precisa ter ao menos 3 caracteres.";
+  if (senha.length < 4) return "A senha precisa ter ao menos 4 caracteres.";
+  if (usuarios.some(u => u.usuario.toLowerCase() === usuario.toLowerCase()))
+    return "Esse usuário já existe.";
+  usuarios.push({ usuario, hash: await gerarHash(usuario, senha) });
+  gravar("usuarios", usuarios);
+  return null;
 }
 
-// ===== Renderização =====
+// ---------- Login / cadastro ----------
+let modoCadastro = false;
 
-function criarCelula(texto) {
-    const td = document.createElement("td");
-    td.textContent = texto;
-    return td;
+function alternarModo() {
+  modoCadastro = !modoCadastro;
+  $("authTitulo").textContent = modoCadastro ? "Criar conta" : "Entrar";
+  $("authSub").textContent = modoCadastro ? "Escolha um usuário e uma senha." : "Use seu usuário e senha.";
+  $("btnAuth").textContent = modoCadastro ? "Criar conta" : "Entrar";
+  $("btnTroca").textContent = modoCadastro ? "Já tenho conta" : "Criar uma conta";
+  $("boxConfirma").classList.toggle("hidden", !modoCadastro);
+  msg($("authMsg"), "");
 }
 
-function renderizarTabela() {
-    const tbody = document.getElementById("tabela-produtos");
-    if (!tbody) return;
-    tbody.innerHTML = "";
+async function enviarAuth() {
+  const usuario = $("aUser").value.trim();
+  const senha = $("aPass").value;
+  const aviso = $("authMsg");
+  if (!usuario || !senha) return msg(aviso, "Preencha usuário e senha.");
 
-    // Ordena pelos que vencem primeiro
-    const ordenados = produtos
-        .map((produto, indice) => ({ produto, indice }))
-        .sort((a, b) => diasRestantes(a.produto.validade) - diasRestantes(b.produto.validade));
-
-    ordenados.forEach(({ produto, indice }) => {
-        const dias = diasRestantes(produto.validade);
-        const status = obterStatus(dias);
-        const tr = document.createElement("tr");
-
-        tr.append(
-            criarCelula(produto.nome),
-            criarCelula(CATEGORIAS[produto.categoria] || produto.categoria),
-            criarCelula(`${produto.quantidade} ${UNIDADES[produto.unidade] || produto.unidade}`),
-            criarCelula(formatarData(produto.validade)),
-            criarCelula(textoPrazo(dias)),
-            criarCelula(status.texto),
-            criarCelula(produto.local || "-")
-        );
-
-        // Coluna de ações (adicione <th>Ações</th> no cabeçalho da tabela)
-        const tdAcoes = document.createElement("td");
-        const botao = document.createElement("button");
-        botao.type = "button";
-        botao.textContent = "🗑️ Remover";
-        botao.addEventListener("click", () => removerProduto(indice));
-        tdAcoes.appendChild(botao);
-        tr.appendChild(tdAcoes);
-
-        tbody.appendChild(tr);
-    });
+  if (modoCadastro) {
+    if (senha !== $("aPass2").value) return msg(aviso, "As senhas não coincidem.");
+    const erro = await criarUsuario(usuario, senha);
+    if (erro) return msg(aviso, erro);
+  } else {
+    const achado = usuarios.find(u => u.usuario.toLowerCase() === usuario.toLowerCase());
+    const h = await gerarHash(usuario, senha);
+    if (!achado || achado.hash !== h) return msg(aviso, "Usuário ou senha incorretos.");
+    return entrar(achado.usuario);
+  }
+  entrar(usuario);
 }
 
-function renderizarResumo() {
-    const contagem = { verde: 0, amarelo: 0, vermelho: 0 };
-    produtos.forEach((p) => contagem[obterStatus(diasRestantes(p.validade)).cor]++);
-
-    const mapa = {
-        "qtd-verde": contagem.verde,
-        "qtd-amarelo": contagem.amarelo,
-        "qtd-vermelho": contagem.vermelho,
-    };
-    Object.entries(mapa).forEach(([id, valor]) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = valor;
-    });
+function entrar(nome) {
+  sessao = nome;
+  gravar("sessao", sessao);
+  $("aUser").value = $("aPass").value = $("aPass2").value = "";
+  render();
 }
 
-function renderizarAlertas() {
-    const container = document.getElementById("lista-alertas");
-    if (!container) return;
-    container.innerHTML = "";
-
-    const alertas = produtos
-        .map((p) => ({ p, dias: diasRestantes(p.validade) }))
-        .filter(({ dias }) => dias <= 7)
-        .sort((a, b) => a.dias - b.dias);
-
-    if (alertas.length === 0) {
-        const p = document.createElement("p");
-        p.textContent = "✅ Nenhum alerta no momento.";
-        container.appendChild(p);
-        return;
-    }
-
-    alertas.forEach(({ p: produto, dias }) => {
-        const artigo = document.createElement("article");
-        artigo.setAttribute("role", "alert");
-
-        const titulo = document.createElement("h3");
-        const mensagem = document.createElement("p");
-
-        if (dias < 0) {
-            titulo.textContent = "🔴 Produto vencido";
-            mensagem.textContent = `${produto.nome} está vencido há ${Math.abs(dias)} ${Math.abs(dias) === 1 ? "dia" : "dias"}. Retire o produto do estoque.`;
-        } else if (dias === 0) {
-            titulo.textContent = "🔴 Produto vencido";
-            mensagem.textContent = `${produto.nome} vence hoje (0 dias) e, pela regra, é considerado vencido. Retire-o do estoque.`;
-        } else {
-            titulo.textContent = "🟡 Próximo do vencimento";
-            mensagem.textContent = `${produto.nome} vence em ${dias} ${dias === 1 ? "dia" : "dias"}. Use-o com prioridade.`;
-        }
-
-        artigo.append(titulo, mensagem, document.createElement("hr"));
-        container.appendChild(artigo);
-    });
+function sair() {
+  sessao = null;
+  gravar("sessao", null);
+  render();
 }
 
-function atualizarTela() {
-    renderizarTabela();
-    renderizarResumo();
-    renderizarAlertas();
+// ---------- Produtos ----------
+function adicionarProduto() {
+  const nome = $("pNome").value.trim();
+  const preco = parseFloat($("pPreco").value);
+  const qtd = parseInt($("pQtd").value, 10);
+  const aviso = $("prodMsg");
+  if (!nome) return msg(aviso, "Informe o nome do produto.");
+  if (isNaN(preco) || preco < 0) return msg(aviso, "Informe um preço válido.");
+  if (isNaN(qtd) || qtd < 0) return msg(aviso, "Informe uma quantidade válida.");
+  produtos.push({ id: Date.now(), nome, preco, qtd });
+  gravar("produtos", produtos);
+  $("pNome").value = $("pPreco").value = $("pQtd").value = "";
+  msg(aviso, "Produto adicionado.", true);
+  render();
 }
 
-// ===== Ações =====
-
-function adicionarProduto(evento) {
-    evento.preventDefault();
-    const form = evento.target;
-    const dados = new FormData(form);
-
-    produtos.push({
-        nome: dados.get("produto").trim(),
-        categoria: dados.get("categoria"),
-        quantidade: Number(dados.get("quantidade")),
-        unidade: dados.get("unidade"),
-        validade: dados.get("validade"),
-        local: dados.get("local").trim(),
-    });
-
-    atualizarTela();
-    form.reset();
+function removerProduto(id) {
+  produtos = produtos.filter(p => p.id !== id);
+  gravar("produtos", produtos);
+  render();
 }
 
-function removerProduto(indice) {
-    const produto = produtos[indice];
-    if (!confirm(`Remover "${produto.nome}" do estoque?`)) return;
-    produtos.splice(indice, 1);
-    atualizarTela();
+// ---------- Usuários (dentro do sistema) ----------
+async function adicionarUsuario() {
+  const erro = await criarUsuario($("uNome").value, $("uSenha").value);
+  if (erro) return msg($("userMsg"), erro);
+  $("uNome").value = $("uSenha").value = "";
+  msg($("userMsg"), "Usuário cadastrado.", true);
+  render();
 }
 
-// ===== Cadastro de usuário (apenas validação) =====
-
-function configurarCadastro() {
-    const form = document.getElementById("formulario");
-    if (!form) return;
-
-    const senha = document.getElementById("senha");
-    const confirmar = document.getElementById("ConfirmarSenha");
-
-    function validarSenhas() {
-        confirmar.setCustomValidity(
-            senha.value !== confirmar.value ? "As senhas não coincidem." : ""
-        );
-    }
-
-    senha.addEventListener("input", validarSenhas);
-    confirmar.addEventListener("input", validarSenhas);
-
-    form.addEventListener("submit", (evento) => {
-        evento.preventDefault();
-        validarSenhas();
-        if (!form.reportValidity()) return;
-
-        alert("Dados validados com sucesso! (Nada é salvo nesta versão.)");
-        form.reset();
-    });
-
-    const botaoEntrar = form.querySelector('button[type="button"]');
-    if (botaoEntrar) {
-        botaoEntrar.addEventListener("click", () => {
-            alert("O login ainda não está implementado.");
-        });
-    }
+function removerUsuario(nome) {
+  if (nome === sessao) return;
+  usuarios = usuarios.filter(u => u.usuario !== nome);
+  gravar("usuarios", usuarios);
+  render();
 }
 
-// ===== Inicialização =====
+// ---------- Desenho da tela ----------
+function celula(texto, classe) {
+  const td = document.createElement("td");
+  td.textContent = texto;
+  if (classe) td.className = classe;
+  return td;
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-    const formProduto = document.getElementById("form-produto");
-    if (formProduto) formProduto.addEventListener("submit", adicionarProduto);
+function botaoRemover(acao, desativado) {
+  const td = document.createElement("td");
+  td.className = "n";
+  const b = document.createElement("button");
+  b.className = "del";
+  b.textContent = "Remover";
+  b.disabled = !!desativado;
+  b.onclick = acao;
+  td.appendChild(b);
+  return td;
+}
 
-    configurarCadastro();
-    atualizarTela();
-});
+function render() {
+  const logado = sessao && usuarios.some(u => u.usuario === sessao);
+  if (!logado) sessao = null;
+  $("telaAuth").classList.toggle("hidden", !!logado);
+  $("telaApp").classList.toggle("hidden", !logado);
+  if (!logado) return;
+
+  $("nomeLogado").textContent = sessao;
+
+  const lp = $("listaProdutos");
+  lp.innerHTML = "";
+  produtos.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.append(celula(p.nome), celula(brl(p.preco), "n"), celula(String(p.qtd), "n"),
+              botaoRemover(() => removerProduto(p.id)));
+    lp.appendChild(tr);
+  });
+  $("vazioProd").classList.toggle("hidden", produtos.length > 0);
+
+  const lu = $("listaUsuarios");
+  lu.innerHTML = "";
+  usuarios.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.append(celula(u.usuario + (u.usuario === sessao ? " (você)" : "")),
+              botaoRemover(() => removerUsuario(u.usuario), u.usuario === sessao));
+    lu.appendChild(tr);
+  });
+}
+
+// ---------- Eventos ----------
+$("btnAuth").onclick = enviarAuth;
+$("btnTroca").onclick = alternarModo;
+$("btnSair").onclick = sair;
+$("btnProduto").onclick = adicionarProduto;
+$("btnUsuario").onclick = adicionarUsuario;
+["aUser", "aPass", "aPass2"].forEach(id =>
+  $(id).addEventListener("keydown", e => { if (e.key === "Enter") enviarAuth(); }));
+
+// Sem nenhum usuário ainda? Já abre na tela de cadastro.
+if (usuarios.length === 0) alternarModo();
+render();
