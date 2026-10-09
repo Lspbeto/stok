@@ -112,6 +112,7 @@ button.del {
   color: var(--danger);
   border-color: var(--line);
   padding: 6px 10px;
+
 }
 
 button:disabled {
