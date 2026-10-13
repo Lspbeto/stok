@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let usuarios = JSON.parse(localStorage.getItem("sis_usuarios")) || [];
   let produtosSimples = JSON.parse(localStorage.getItem("sis_produtos")) || [];
   let itensDespensa = JSON.parse(localStorage.getItem("sis_despensa")) || [];
-  let usuarioLogado = localStorage.getItem("sis_usuarioLogado") || null;
+  let usuarioLogado =git fetch origin main.getItem("sis_usuarioLogado") || null;
 
   // Data de referência
   const hoje = new Date();
