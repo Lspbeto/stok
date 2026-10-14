@@ -13,14 +13,20 @@
     
     <!-- TELA DE LOGIN / CADASTRO DE CONTA -->
     <section id="telaAuth" class="auth card">
+<<<<<<< HEAD
+
+      <h1 id="authTitulo">Entrar</h1>
+      <p class="sub" id="authSub">Use seu usuário e senha.</p>
+=======
       <h1 id="authTitulo">Stok</h1>
        <img src="IMG/RATCAT.webp">  
     
       <p class="sub" id="authSub">Entrar</p>
 
+>>>>>>> 39e05555d6610f89fab1cf21728eb74823d39ef4
       <div class="field">
         <label for="aUser">Usuário</label>
-        <input id="aUser" autocomplete="username">
+        <input type="text" id="aUser" autocomplete="username">
       </div>
 
       <div class="field">
@@ -116,7 +122,7 @@
                   <option value="kg">Quilograma (kg)</option>
                   <option value="g">Grama (g)</option>
                   <option value="L">Litro (L)</option>
-                  <option value="un">Unidade</option>
+                  <option value="unidade">Unidade</option>
                   <option value="cx">Caixa</option>
                 </select>
               </div>
@@ -150,7 +156,7 @@
                 <tr>
                   <th scope="col">Produto</th>
                   <th scope="col">Categoria</th>
-                  <th scope="col">Quantidade</th>
+                  <th scope="col">Unidade</th>
                   <th scope="col">Validade</th>
                   <th scope="col">Prazo</th>
                   <th scope="col">Status</th>
@@ -176,15 +182,15 @@
           <h2>Cadastrar produto rápido</h2>
           <div class="row">
             <div style="flex-basis:220px">
-              <label for="pNome">Nome</label>
+              <label for="pNome">Nome:</label>
               <input id="pNome">
             </div>
             <div>
-              <label for="pPreco">Preço (R$)</label>
+              <label for="pPreco">Preço (R$):</label>
               <input id="pPreco" type="number" min="0" step="0.01">
             </div>
             <div>
-              <label for="pQtd">Quantidade</label>
+              <label for="pQtd">Quantidade:</label>
               <input id="pQtd" type="number" min="0" step="1">
             </div>
             <div style="flex:0 0 auto">
@@ -209,7 +215,7 @@
               <tbody id="listaProdutos"></tbody>
             </table>
           </div>
-          <div class="vazio hidden" id="vazioProd">Nenhum produto cadastrado ainda.</div>
+          <div class="vazio hidden" id="vazioProd">Nenhum produto está cadastrado ainda.</div>
         </div>
       </div>
 
