@@ -2,229 +2,251 @@
 <html lang="pt-br">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Projeto prático</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Gestão e Despensa</title>
+  <link rel="stylesheet" href="./CSS/style.css">
 </head>
 
 <body>
-    <header class="cabecalho">
-        <h1>🍽️Controle de Validade de Estoque</h1>
-        <p><strong>Processo necessário para monitorar, organizar e gerenciar
-            produtos com data de validade próxima do vencimento.
-        </strong></p>
-        <div class="login-cadastro">
-            <h2>Cadastro do Usuário</h2>
+  <main id="painel-principal">
+    
+    <!-- TELA DE LOGIN / CADASTRO DE CONTA -->
+    <section id="telaAuth" class="auth card">
 
-            <form id="formulario">
-                <label for="usuário">Usuário:</label>
-                <br>
-                <input type="text" id="usuário" name="usuário" placeholder="Digite seu nome de usuário" required>
-                <br><br>
-                <label for="senha">Senha:</label>
-                <br>
-                <input type="password" id="senha" name="senha" placeholder="Digite sua senha"
-                autocomplete="new-password" required>
-                <br><br>
-               <label for="ConfirmarSenha">Confirme sua senha:</label>
-               <br>
-               <input type="password" id="ConfirmarSenha" name="ConfirmarSenha" placeholder="Digite a senha novamente"
-               autocomplete="new-password" required>
-               <br><br>
-                <button type="submit">Entrar</button>
-                <br><br>
-               <button type="button">Criar Conta</button>
-               <br><br>
-               <a href="#">Voltar á página inicial</a>
-               <br>
-        </form>
+      <h1 id="authTitulo">Entrar</h1>
+      <p class="sub" id="authSub">Use seu usuário e senha.</p>
+      <div class="field">
+        <label for="aUser">Usuário</label>
+        <input type="text" id="aUser" autocomplete="username">
+      </div>
+
+      <div class="field">
+        <label for="aPass">Senha</label>
+        <input id="aPass" type="password" autocomplete="current-password">
+      </div>
+
+      <div id="boxConfirma" class="hidden field">
+        <label for="aPass2">Confirmar senha</label>
+        <input id="aPass2" type="password" autocomplete="new-password">
+      </div>
+      <p class="msg" id="authMsg" role="alert"></p>
+
+      <div class="row" style="margin-top:12px">
+        <button id="btnAuth" type="button">Entrar</button>
+        <button class="link" id="btnTroca" type="button">Criar uma conta</button>
+      </div>
+    </section>
+
+    <!-- TELA DO SISTEMA (APÓS LOGIN) -->
+    <section id="telaApp" class="hidden">
+      <!-- CABEÇALHO -->
+      <div class="top card">
+        <div>
+          <h1>Controle de Produtos e Despensa</h1>
+          <div class="sub" style="margin:0">Logado como <strong id="nomeLogado"></strong></div>
         </div>
-        <hr>
-        
-    </header>
-    <main id="painel-principal">
-        <h2>Painel de despensa</h2>
+        <button class="sec" id="btnSair" type="button">Sair</button>
+      </div>
 
-        <p>
-            Controle de ingredientes e seus respectivos prazos de validade.
-        </p>
-        <section>
-            <h3>Resumo do Estoque</h3>
-            <ul>
-                <li> 🟢 Produtos dentro da validade: <strong>5</strong> </li>
-                <li> 🟡 Produtos próximos do vencimento: <strong>2</strong> </li>
-                <li> 🔴 Produtos vencidos: <strong>1</strong> </li>
-            </ul>
+      <!-- NAVEGAÇÃO DE ABAS -->
+      <nav class="tabs card">
+        <button class="tab-btn active" data-tab="tabDespensa">🥑 Painel da Despensa</button>
+        <button class="tab-btn" data-tab="tabProdutos">📦 Produtos Gerais</button>
+        <button class="tab-btn" data-tab="tabUsuarios">👤 Gestão de Usuários</button>
+      </nav>
+
+      <!-- ABA 1: PAINEL DA DESPENSA -->
+      <div id="tabDespensa" class="tab-content">
+        <!-- RESUMO -->
+        <section aria-labelledby="titulo-resumo" class="card">
+          <h2 id="titulo-resumo">Resumo do estoque</h2>
+          <p>Data de referência: <strong id="dataHoje"></strong></p>
+          <ul id="resumo">
+            <li>🟢 Produtos dentro da validade: <strong id="qtdVerde">0</strong></li>
+            <li>🟡 Produtos próximos do vencimento: <strong id="qtdAmarelo">0</strong></li>
+            <li>🔴 Produtos vencidos: <strong id="qtdVermelho">0</strong></li>
+          </ul>
         </section>
-        <hr>
-        <section>
-            <h3>🚦 Situação dos Produtos</h3>
-            <p> 🟢 <strong>Verde:</strong> produto dentro do prazo. </p>
-            <p> 🟡 <strong>Amarelo:</strong> produto próximo do vencimento. </p>
-            <p> 🔴 <strong>Vermelho:</strong> produto vencido. </p>
+
+        <!-- LEGENDA -->
+        <section aria-labelledby="titulo-legenda" class="card">
+          <h2 id="titulo-legenda">🚦 Situação dos produtos</h2>
+          <p>🟢 <strong>Verde:</strong> produto dentro do prazo (mais de 7 dias).</p>
+          <p>🟡 <strong>Amarelo:</strong> produto próximo do vencimento (1 a 7 dias).</p>
+          <p>🔴 <strong>Vermelho:</strong> produto vencido (vence hoje ou já passou).</p>
         </section>
-        <hr>
-        <section id="produtos">
-            <h2>📦 Cadastro de Produtos</h2>
-            <form>
-                <label for="produto"> Nome do ingrediente: </label>
-                <br>
+
+        <!-- FORMULÁRIO DE CADASTRO DE INGREDIENTES -->
+        <section id="produtos-despensa" aria-labelledby="titulo-cadastro-despensa" class="card">
+          <h2 id="titulo-cadastro-despensa">📦 Cadastrar ingrediente na despensa</h2>
+          <form id="formProduto">
+            <div class="form-grid">
+              <div>
+                <label for="produto">Nome do ingrediente</label>
                 <input type="text" id="produto" name="produto" placeholder="Ex: Arroz" required>
-                <br><br>
-                <label for="categoria"> Categoria: </label>
-                <br>
+              </div>
+
+              <div>
+                <label for="categoria">Categoria</label>
                 <select id="categoria" name="categoria" required>
-                    <option value=""> Selecione </option>
-                    <option value="graos"> Grãos </option>
-                    <option value="carnes"> Carnes </option>
-                    <option value="verduras"> Verduras </option>
-                    <option value="frutas"> Frutas </option>
-                    <option value="laticinios"> Laticínios </option>
-                    <option value="temperos"> Temperos </option>
-                    <option value="legumes">Legumes</option>
-                    <option value="outros"> Outros </option>
+                  <option value="">Selecione</option>
+                  <option value="Grãos">Grãos</option>
+                  <option value="Carnes">Carnes</option>
+                  <option value="Verduras">Verduras</option>
+                  <option value="Frutas">Frutas</option>
+                  <option value="Laticínios">Laticínios</option>
+                  <option value="Temperos">Temperos</option>
+                  <option value="Legumes">Legumes</option>
+                  <option value="Outros">Outros</option>
                 </select>
-                <br><br>
-                <label for="quantidade"> Quantidade: </label>
-                <br>
-                <input type="number" id="quantidade" name="quantidade" min="1" placeholder="Ex: 10" required>
-                <br><br>
-                <label for="valor">Preço em (R$):</label>
-                <br>
-                <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Digite o preço do produto">
-                <br><br>
-                <label for="unidade"> Unidade: </label>
-                <br>
-                <select id="unidade" name="unidade" required>
-                    <option value="kg"> Quilograma (kg) </option>
-                    <option value="g"> Grama (g) </option>
-                    <option value="l"> Litro (L) </option>
-                    <option value="unidade"> Unidade </option>
-                    <option value="caixa"> Caixa </option>
+              </div>
+
+              <div>
+                <label for="quantidade">Quantidade</label>
+                <input type="number" id="quantidade" name="quantidade" min="0.01" step="any" placeholder="Ex: 10"
+                  required>
+              </div>
+
+              <div>
+                <label for="unidade">Unidade</label>
+                <select id="unidade" name="unidade">
+                  <option value="kg">Quilograma (kg)</option>
+                  <option value="g">Grama (g)</option>
+                  <option value="L">Litro (L)</option>
+                  <option value="unidade">Unidade</option>
+                  <option value="cx">Caixa</option>
                 </select>
-                <br><br>
-                <label for="validade"> Data de validade: </label>
-                <br>
+              </div>
+
+              <div>
+                <label for="validade">Data de validade</label>
                 <input type="date" id="validade" name="validade" required>
-                <br><br>
-                <label for="local"> Local de armazenamento: </label>
-                <br>
-                <input type="text" id="local" name="local" placeholder="Ex: Prateleira 2" required>
-                <br><br>
-                <button type="submit"> ➕ Adicionar Produto </button>
-            </form>
+              </div>
+
+              <div>
+                <label for="local">Local de armazenamento</label>
+                <input type="text" id="local" name="local" placeholder="Ex: Prateleira 2">
+              </div>
+
+              <div>
+                <label for="valor">Preço do produto (R$)</label>
+                <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Ex: 12,50">
+              </div>
+            </div>
+
+            <button type="submit" style="margin-top: 12px;">➕ Adicionar à Despensa</button>
+          </form>
         </section>
-        <hr>
-        <section>
-            <h2>📋 Tabela de Ingredientes</h2>
-            <table id="tabela">
-                <thead>
-                    <tr>
-                        <th>Produto</th>
-                        <th>Categoria</th>
-                        <th>Quantidade</th>
-                        <th>Validade</th>
-                        <th>Valor</th>
-                        <th>Prazo</th>
-                        <th>Status</th>
-                        <th>Local</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Arroz</td>
-                        <td>Grãos</td>
-                        <td>20 kg</td>
-                        <td>20/12/2026</td>
-                        <td>R$ 5.60</td>
-                        <td> 🟢 Dentro da validade </td>
-                        <td>45 dias</td>
-                        <td>Prateleira 1</td>
-                    </tr>
-                    <tr>
-                        <td>Leite</td>
-                        <td>Laticínios</td>
-                        <td>10 L</td>
-                        <td>15/10/2026</td>
-                        <td>R$ 8.20</td>
-                        <td> 🟡 Próximo do vencimento </td>
-                        <td>7 dias</td>
-                        <td>Geladeira 1</td>
-                    </tr>
-                    <tr>
-                        <td>Frango</td>
-                        <td>Carnes</td>
-                        <td>5 kg</td>
-                        <td>28/09/2026</td>
-                        <td>R$ 12.45</td>
-                        <td> 🔴 Vencido </td>
-                        <td>Freezer 2</td>
-                    </tr>
-                    <tr>
-                        <td>Tomate</td>
-                        <td>Verduras</td>
-                        <td>30 g</td>
-                        <td>14/10/2026</td>
-                        <td>R$ 6.30</td>
-                        <td> 🟡 Próximo do vencimento </td>
-                        <td>6 dias</td>
-                        <td>Geladeira 2</td>
-                    </tr>
-                    <tr>
-                        <td>Feijão</td>
-                        <td>Grãos</td>
-                        <td>200 g</td>
-                        <td>15/11/2026</td>
-                        <td>R$ 3.35</td>
-                        <td> 🟢 Dentro da validade </td>
-                        <td>38 dias</td>
-                        <td>Prateleira 2</td>
-                    </tr>
-                </tbody>
+
+        <!-- LISTA DE INGREDIENTES DA DESPENSA -->
+        <section aria-labelledby="titulo-lista" class="card">
+          <h2 id="titulo-lista">📋 Lista de ingredientes</h2>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Produto</th>
+                  <th scope="col">Categoria</th>
+                  <th scope="col">Unidade</th>
+                  <th scope="col">Validade</th>
+                  <th scope="col">Prazo</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Local</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="corpoTabela"></tbody>
             </table>
+          </div>
         </section>
-        <hr>
-        <section>
-            <h2>⚠️ Alertas de Validade</h2>
-            <article>
-                <h3>🟡 Atenção</h3>
-                <p> O leite vencerá em 7 dias. Verifique o estoque e priorize sua utilização. </p>
-                <hr>
-            </article>
 
-            <article>
-                <h3>🟡 Atenção</h3>
-                <p> O tomate vencerá em 6 dias. Priorize seu uso nas próximas receitas. </p>
-                <hr>
-            </article>
-
-            <article>
-                <h3>🔴 Produto vencido</h3>
-                <p> O frango está vencido. Retire o produto do estoque e faça a verificação necessária. </p>
-            </article>
+        <!-- ALERTAS -->
+        <section aria-labelledby="titulo-alertas" class="card">
+          <h2 id="titulo-alertas">⚠️ Alertas de validade</h2>
+          <div id="alertas"></div>
         </section>
-        <hr>
-        <section>
-            <h2>📅 Regra de Controle de Validade</h2>
-            <p> O sistema pode utilizar a seguinte regra: </p>
-            <ul>
-                <li> 🟢 Mais de 7 dias: Dentro da validade </li>
-                <li> 🟡 Entre 1 e 7 dias: Próximo do vencimento </li>
-                <li> 🔴 0 dias ou menos: Produto vencido </li>
-            </ul>
-            <p> <strong>Exemplo:</strong> </p>
-            <p> Data atual: 08/10/2026 </p>
-            <p> Data de validade: 14/10/2026 </p>
-            <p> Resultado: 6 dias restantes → 🟡 Próximo do vencimento. </p>
-        </section>
-    </main>
-    <hr>
-    <footer id="rodapé">
-        <p> 🍽️<strong> Sistema de Validade da Despensa e cadastro de seus produtos </strong>  </p>
-        <p> <strong>Projeto desenvolvido em HTML</strong> </p>
-    </footer>
-</main>
+      </div>
 
+      <!-- ABA 2: PRODUTOS GERAIS (SIMPLES) -->
+      <div id="tabProdutos" class="tab-content hidden">
+        <div class="card">
+          <h2>Cadastrar produto rápido</h2>
+          <div class="row">
+            <div style="flex-basis:220px">
+              <label for="pNome">Nome:</label>
+              <input id="pNome">
+            </div>
+            <div>
+              <label for="pPreco">Preço (R$):</label>
+              <input id="pPreco" type="number" min="0" step="0.01">
+            </div>
+            <div>
+              <label for="pQtd">Quantidade:</label>
+              <input id="pQtd" type="number" min="0" step="1">
+            </div>
+            <div style="flex:0 0 auto">
+              <button id="btnProduto" type="button">Adicionar</button>
+            </div>
+          </div>
+          <p class="msg" id="prodMsg" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h2>Produtos cadastrados</h2>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th class="n">Preço</th>
+                  <th class="n">Qtd</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listaProdutos"></tbody>
+            </table>
+          </div>
+          <div class="vazio hidden" id="vazioProd">Nenhum produto está cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- ABA 3: GESTÃO DE USUÁRIOS -->
+      <div id="tabUsuarios" class="tab-content hidden">
+        <div class="card">
+          <h2>Cadastrar usuário</h2>
+          <div class="row">
+            <div>
+              <label for="uNome">Usuário</label>
+              <input id="uNome" autocomplete="off">
+            </div>
+            <div>
+              <label for="uSenha">Senha</label>
+              <input id="uSenha" type="password" autocomplete="new-password">
+            </div>
+            <div style="flex:0 0 auto">
+              <button id="btnUsuario" type="button">Cadastrar</button>
+            </div>
+          </div>
+          <p class="msg" id="userMsg" role="alert"></p>
+
+          <div class="scroll" style="margin-top: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuários cadastrados</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listaUsuarios"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <script src="./JS/script.js"></script>
 </body>
 
 </html>
