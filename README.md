@@ -1,6 +1,6 @@
 Trabalho curso Programador WEB
 
-Com base nos arquivos fornecidos (index.html, script.js e style.css), estruturei a análise detalhada dos comandos, estruturas de controle (laços/condicionais) e relações presentes no código do Sistema de Gestão e Despensa.
+Os arquivos fornecidos (index.html, script.js e style.css), estruturei a análise detalhada dos comandos, estruturas de controle (laços/condicionais) e relações presentes no código do Sistema de Gestão e Despensa.
 
 1. Comandos e Funções Principais (script.js)
 O código utiliza comandos modernos do JavaScript (ES6+) para manipular o DOM, gerenciar eventos e persistir dados localmente.   
