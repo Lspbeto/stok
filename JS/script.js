@@ -45,6 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const formProdutoDespensa = document.getElementById("formProduto");
   const corpoTabelaDespensa = document.getElementById("corpoTabela");
   const alertasDiv = document.getElementById("alertas");
+  const btnSalvarDespensa = document.getElementById("btnSalvarDespensa");
+  const btnCancelarDespensa = document.getElementById("btnCancelarDespensa");
 
   // --- Aba Produtos Gerais ---
   const pNome = document.getElementById("pNome");
@@ -54,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const prodMsg = document.getElementById("prodMsg");
   const listaProdutos = document.getElementById("listaProdutos");
   const vazioProd = document.getElementById("vazioProd");
+  const btnCancelarProduto = document.getElementById("btnCancelarProduto");
 
   // --- Aba Usuários ---
   const uNome = document.getElementById("uNome");
@@ -73,6 +76,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let usuarios = lerStorage("sis_usuarios", []);
   let produtosSimples = lerStorage("sis_produtos", []);
   let itensDespensa = lerStorage("sis_despensa", []);
+
+  // id do item que está sendo editado (null = nenhum, ou seja, modo "cadastrar")
+  let editandoDespensaId = null;
+  let editandoProdutoId = null;
 
   // CORREÇÃO: aqui estava o "git fetch origin main" no código original
   let usuarioLogado = localStorage.getItem("sis_usuarioLogado") || null;
@@ -202,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Botão principal: faz login OU cadastro, dependendo de modoLogin
   btnAuth.addEventListener("click", () => {
     const user = aUser.value.trim(); // trim() remove espaços das pontas
-    const pass = aPass.value.trim();
+    const pass = aPass.value;
 
     if (!user || !pass) {
       exibirMsg(authMsg, "Preencha todos os campos obrigatórios.");
@@ -225,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       // ----- CADASTRO -----
-      const pass2 = aPass2.value.trim();
+      const pass2 = aPass2.value;
 
       if (pass !== pass2) {
         exibirMsg(authMsg, "As senhas não coincidem.");
@@ -258,6 +265,8 @@ document.addEventListener("DOMContentLoaded", () => {
   btnSair.addEventListener("click", () => {
     usuarioLogado = null;
     localStorage.removeItem("sis_usuarioLogado");
+    sairEdicaoDespensa();
+    sairEdicaoProduto();
     exibirAuth();
   });
 
@@ -273,12 +282,11 @@ document.addEventListener("DOMContentLoaded", () => {
      6. MÓDULO 1 - PAINEL DA DESPENSA
      ====================================================================== */
 
-  // Ao enviar o formulário: cria um novo item na despensa
+  // Ao enviar o formulário: cria um novo item OU salva a edição de um existente
   formProdutoDespensa.addEventListener("submit", (e) => {
     e.preventDefault(); // impede a página de recarregar
 
-    const novoItem = {
-      id: Date.now(), // número único baseado na hora (identificador)
+    const dados = {
       nome: document.getElementById("produto").value.trim(),
       categoria: document.getElementById("categoria").value,
       quantidade: parseFloat(document.getElementById("quantidade").value),
@@ -288,10 +296,52 @@ document.addEventListener("DOMContentLoaded", () => {
       valor: parseFloat(document.getElementById("valor").value) || 0 // vazio vira 0
     };
 
-    itensDespensa.push(novoItem);
+    if (editandoDespensaId !== null) {
+      // ----- EDIÇÃO: mantém o id e troca os demais dados -----
+      const item = itensDespensa.find((p) => p.id === editandoDespensaId);
+      if (item) Object.assign(item, dados);
+    } else {
+      // ----- CADASTRO: cria um item novo com id único -----
+      itensDespensa.push({ id: Date.now(), ...dados });
+    }
+
     salvarStorage("sis_despensa", itensDespensa);
+    sairEdicaoDespensa(); // limpa o formulário e volta ao modo "cadastrar"
     atualizarDespensa();
-    formProdutoDespensa.reset(); // limpa o formulário
+  });
+
+  /** Carrega um item da despensa no formulário para edição. */
+  function iniciarEdicaoDespensa(id) {
+    const item = itensDespensa.find((p) => p.id === id);
+    if (!item) return;
+
+    editandoDespensaId = id;
+    document.getElementById("produto").value = item.nome;
+    document.getElementById("categoria").value = item.categoria;
+    document.getElementById("quantidade").value = item.quantidade;
+    document.getElementById("unidade").value = item.unidade;
+    document.getElementById("validade").value = item.validade;
+    document.getElementById("local").value = item.local === "-" ? "" : item.local;
+    document.getElementById("valor").value = item.valor || "";
+
+    btnSalvarDespensa.textContent = "💾 Salvar alterações";
+    btnCancelarDespensa.classList.remove("hidden");
+    atualizarDespensa(); // destaca a linha em edição
+    formProdutoDespensa.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("produto").focus();
+  }
+
+  /** Sai do modo edição: limpa o formulário e restaura o botão. */
+  function sairEdicaoDespensa() {
+    editandoDespensaId = null;
+    formProdutoDespensa.reset();
+    btnSalvarDespensa.textContent = "➕ Adicionar à Despensa";
+    btnCancelarDespensa.classList.add("hidden");
+  }
+
+  btnCancelarDespensa.addEventListener("click", () => {
+    sairEdicaoDespensa();
+    atualizarDespensa(); // remove o destaque da linha
   });
 
   /**
@@ -309,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (itensDespensa.length === 0) {
       corpoTabelaDespensa.innerHTML =
-        `<tr><td colspan="8" style="text-align:center;color:#666;">Nenhum ingrediente na despensa.</td></tr>`;
+        `<tr><td colspan="9" style="text-align:center;color:#666;">Nenhum ingrediente na despensa.</td></tr>`;
     }
 
     // Ordena: os que vencem primeiro aparecem no topo
@@ -355,11 +405,18 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${statusObj.textoPrazo}</td>
         <td>${statusObj.badge}</td>
         <td>${escapeHtml(item.local)}</td>
+        <td>R$ ${Number(item.valor || 0).toFixed(2).replace(".", ",")}</td>
+        
         <td>
-          <button type="button" class="sec" style="padding:2px 8px;"
-                  data-acao="excluir-despensa" data-id="${item.id}">Excluir</button>
+          <div class="acoes">
+            <button type="button" class="sec editar" style="padding:2px 8px;"
+                    data-acao="editar-despensa" data-id="${item.id}">Editar</button>
+            <button type="button" class="sec" style="padding:2px 8px;"
+                    data-acao="excluir-despensa" data-id="${item.id}">Excluir</button>
+          </div>
         </td>
       `;
+      if (item.id === editandoDespensaId) tr.classList.add("editando");
       corpoTabelaDespensa.appendChild(tr);
     });
 
@@ -408,6 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /** Remove um item da despensa pelo id. */
   function removerItemDespensa(id) {
     // filter() mantém todos, exceto o que tem esse id
+    if (id === editandoDespensaId) sairEdicaoDespensa(); // não edita item excluído
     itensDespensa = itensDespensa.filter((p) => p.id !== id);
     salvarStorage("sis_despensa", itensDespensa);
     atualizarDespensa();
@@ -416,8 +474,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // DELEGAÇÃO DE EVENTOS: um único "ouvinte" na tabela cuida de todos os
   // botões Excluir, mesmo os criados depois (a tabela é redesenhada sempre).
   corpoTabelaDespensa.addEventListener("click", (e) => {
-    const botao = e.target.closest("[data-acao='excluir-despensa']");
-    if (botao) removerItemDespensa(Number(botao.dataset.id));
+    const botao = e.target.closest("[data-acao]");
+    if (!botao) return;
+    const id = Number(botao.dataset.id);
+    if (botao.dataset.acao === "editar-despensa") iniciarEdicaoDespensa(id);
+    if (botao.dataset.acao === "excluir-despensa") removerItemDespensa(id);
   });
 
   /* ======================================================================
@@ -435,14 +496,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    produtosSimples.push({ id: Date.now(), nome, preco, qtd });
+    const editando = editandoProdutoId !== null;
+
+    if (editando) {
+      // ----- EDIÇÃO: mantém o id e troca os demais dados -----
+      const prod = produtosSimples.find((p) => p.id === editandoProdutoId);
+      if (prod) Object.assign(prod, { nome, preco, qtd });
+    } else {
+      produtosSimples.push({ id: Date.now(), nome, preco, qtd });
+    }
     salvarStorage("sis_produtos", produtosSimples);
 
-    pNome.value = "";
-    pPreco.value = "";
-    pQtd.value = "";
+    sairEdicaoProduto(); // limpa os campos e volta ao modo "adicionar"
 
-    exibirMsg(prodMsg, "Produto cadastrado!", true);
+    exibirMsg(prodMsg, editando ? "Produto atualizado!" : "Produto cadastrado!", true);
     renderizarProdutosSimples();
   });
 
@@ -462,24 +529,64 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${escapeHtml(prod.nome)}</td>
         <td class="n">R$ ${prod.preco.toFixed(2)}</td>
         <td class="n">${prod.qtd}</td>
-        <td style="text-align:right;">
-          <button type="button" class="sec" style="padding:2px 8px;"
-                  data-acao="excluir-produto" data-id="${prod.id}">Excluir</button>
+        <td>
+          <div class="acoes">
+            <button type="button" class="sec editar" style="padding:2px 8px;"
+                    data-acao="editar-produto" data-id="${prod.id}">Editar</button>
+            <button type="button" class="sec" style="padding:2px 8px;"
+                    data-acao="excluir-produto" data-id="${prod.id}">Excluir</button>
+          </div>
         </td>
       `;
+      if (prod.id === editandoProdutoId) tr.classList.add("editando");
       listaProdutos.appendChild(tr);
     });
   }
 
+  /** Carrega um produto nos campos para edição. */
+  function iniciarEdicaoProduto(id) {
+    const prod = produtosSimples.find((p) => p.id === id);
+    if (!prod) return;
+
+    editandoProdutoId = id;
+    pNome.value = prod.nome;
+    pPreco.value = prod.preco;
+    pQtd.value = prod.qtd;
+
+    btnProduto.textContent = "Salvar";
+    btnCancelarProduto.classList.remove("hidden");
+    renderizarProdutosSimples(); // destaca a linha em edição
+    pNome.focus();
+  }
+
+  /** Sai do modo edição: limpa os campos e restaura o botão. */
+  function sairEdicaoProduto() {
+    editandoProdutoId = null;
+    pNome.value = "";
+    pPreco.value = "";
+    pQtd.value = "";
+    btnProduto.textContent = "Adicionar";
+    btnCancelarProduto.classList.add("hidden");
+  }
+
+  btnCancelarProduto.addEventListener("click", () => {
+    sairEdicaoProduto();
+    renderizarProdutosSimples(); // remove o destaque da linha
+  });
+
   function removerProdutoSimples(id) {
+    if (id === editandoProdutoId) sairEdicaoProduto(); // não edita item excluído
     produtosSimples = produtosSimples.filter((p) => p.id !== id);
     salvarStorage("sis_produtos", produtosSimples);
     renderizarProdutosSimples();
   }
 
   listaProdutos.addEventListener("click", (e) => {
-    const botao = e.target.closest("[data-acao='excluir-produto']");
-    if (botao) removerProdutoSimples(Number(botao.dataset.id));
+    const botao = e.target.closest("[data-acao]");
+    if (!botao) return;
+    const id = Number(botao.dataset.id);
+    if (botao.dataset.acao === "editar-produto") iniciarEdicaoProduto(id);
+    if (botao.dataset.acao === "excluir-produto") removerProdutoSimples(id);
   });
 
   /* ======================================================================
@@ -488,7 +595,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnUsuario.addEventListener("click", () => {
     const username = uNome.value.trim();
-    const senha = uSenha.value.trim();
+    const senha = uSenha.value;
 
     if (!username || !senha) {
       exibirMsg(userMsg, "Preencha o usuário e a senha.");
@@ -563,7 +670,206 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ======================================================================
-     9. UTILITÁRIOS
+     9. RELATÓRIO (imprimir e baixar PDF)
+     ====================================================================== */
+
+  const btnImprimir = document.getElementById("btnImprimir");
+  const btnPdf = document.getElementById("btnPdf");
+  const relMsg = document.getElementById("relMsg");
+  const areaRelatorio = document.getElementById("relatorioImpressao");
+
+  const CABECALHO_DESPENSA = ["Produto", "Categoria", "Quantidade", "Validade", "Prazo", "Status", "Local", "Preço"];
+  const CABECALHO_PRODUTOS = ["Nome", "Preço", "Quantidade"];
+  const ROTULO_STATUS = { verde: "OK", amarelo: "Próximo", vermelho: "Vencido" };
+  // Cores do texto da coluna Status no PDF (RGB)
+  const COR_STATUS = { verde: [46, 125, 50], amarelo: [183, 121, 0], vermelho: [179, 38, 30] };
+
+  /** Formata número como moeda: 12.5 -> "R$ 12,50". */
+  function moeda(valor) {
+    return "R$ " + Number(valor || 0).toFixed(2).replace(".", ",");
+  }
+
+  /** Reúne e calcula tudo que o relatório precisa (usado pelo PDF e pela impressão). */
+  function montarDadosRelatorio() {
+    const hoje = obterHoje();
+    const contadores = { verde: 0, amarelo: 0, vermelho: 0 };
+    let total = 0;
+
+    // Cópia ordenada por validade (não altera a lista original)
+    const ordenados = [...itensDespensa].sort((a, b) => a.validade.localeCompare(b.validade));
+
+    const despensa = ordenados.map((item) => {
+      const [ano, mes, dia] = item.validade.split("-");
+      const dataValidade = new Date(ano, mes - 1, dia);
+      dataValidade.setHours(0, 0, 0, 0);
+      const dias = Math.ceil((dataValidade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+      const st = calcularStatus(dias);
+      contadores[st.chave]++;
+      total += Number(item.valor) || 0;
+
+      return {
+        chave: st.chave,
+        colunas: [
+          item.nome,
+          item.categoria,
+          `${item.quantidade} ${item.unidade}`,
+          formatarDataBR(dataValidade),
+          st.textoPrazo,
+          ROTULO_STATUS[st.chave], // sem emoji: o PDF não os desenha
+          item.local,
+          moeda(item.valor)
+        ]
+      };
+    });
+
+    const produtos = produtosSimples.map((p) => [p.nome, moeda(p.preco), String(p.qtd)]);
+
+    const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoje.getDate()).padStart(2, "0");
+
+    return {
+      dataHoje: formatarDataBR(hoje),
+      dataArquivo: `${hoje.getFullYear()}-${mm}-${dd}`,
+      usuario: usuarioLogado,
+      contadores,
+      despensa,
+      produtos,
+      total
+    };
+  }
+
+  /** Monta uma tabela HTML (usada na impressão). */
+  function tabelaHtml(cabecalho, linhas, mensagemVazia) {
+    const th = cabecalho.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
+    const corpo = linhas.length
+      ? linhas.map((l) => "<tr>" + l.map((c) => `<td>${escapeHtml(c)}</td>`).join("") + "</tr>").join("")
+      : `<tr><td colspan="${cabecalho.length}" style="text-align:center">${mensagemVazia}</td></tr>`;
+    return `<table><thead><tr>${th}</tr></thead><tbody>${corpo}</tbody></table>`;
+  }
+
+  /** IMPRIMIR: preenche a área oculta e abre a janela de impressão. */
+  function imprimirRelatorio() {
+    const d = montarDadosRelatorio();
+
+    areaRelatorio.innerHTML = `
+      <h1>Relatório da Despensa</h1>
+      <p>Data de referência: <strong>${d.dataHoje}</strong> &nbsp;|&nbsp; Gerado por: <strong>${escapeHtml(d.usuario)}</strong></p>
+      <p>Dentro da validade: <strong>${d.contadores.verde}</strong> &nbsp;|&nbsp;
+         Próximos do vencimento: <strong>${d.contadores.amarelo}</strong> &nbsp;|&nbsp;
+         Vencidos: <strong>${d.contadores.vermelho}</strong></p>
+
+      <h2>Ingredientes da despensa</h2>
+      ${tabelaHtml(CABECALHO_DESPENSA, d.despensa.map((l) => l.colunas), "Nenhum ingrediente na despensa.")}
+      <p style="text-align:right">Soma dos preços: <strong>${moeda(d.total)}</strong></p>
+
+      <h2>Produtos gerais</h2>
+      ${tabelaHtml(CABECALHO_PRODUTOS, d.produtos, "Nenhum produto cadastrado.")}
+    `;
+
+    window.print(); // o CSS @media print mostra só esta área
+  }
+
+  /** BAIXAR PDF: gera o arquivo com jsPDF + autoTable e baixa direto. */
+  function baixarPdf() {
+    const jsPDF = window.jspdf && window.jspdf.jsPDF;
+    if (!jsPDF) {
+      exibirMsg(relMsg, "Não foi possível carregar o gerador de PDF (verifique a internet). Use Imprimir e escolha “Salvar como PDF”.");
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    if (typeof doc.autoTable !== "function") {
+      exibirMsg(relMsg, "Não foi possível carregar o gerador de tabelas do PDF. Use Imprimir e escolha “Salvar como PDF”.");
+      return;
+    }
+
+    const d = montarDadosRelatorio();
+    const verde = [45, 90, 68];
+
+    // --- Cabeçalho do relatório ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Relatório da Despensa", 14, 16);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Data de referência: ${d.dataHoje}    |    Gerado por: ${d.usuario}`, 14, 23);
+    doc.text(
+      `Dentro da validade: ${d.contadores.verde}    |    Próximos do vencimento: ${d.contadores.amarelo}    |    Vencidos: ${d.contadores.vermelho}`,
+      14, 29
+    );
+
+    // --- Tabela 1: despensa ---
+    const corpoDespensa = d.despensa.length
+      ? d.despensa.map((l) => l.colunas)
+      : [[{ content: "Nenhum ingrediente na despensa.", colSpan: 8, styles: { halign: "center" } }]];
+
+    doc.autoTable({
+      startY: 34,
+      head: [CABECALHO_DESPENSA],
+      body: corpoDespensa,
+      foot: d.despensa.length
+        ? [[{ content: "Soma dos preços", colSpan: 7, styles: { halign: "right" } }, moeda(d.total)]]
+        : undefined,
+      theme: "striped",
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: verde },
+      footStyles: { fillColor: [225, 236, 228], textColor: [27, 42, 35] },
+      // Colore o texto da coluna Status (índice 5)
+      didParseCell: (dados) => {
+        if (dados.section === "body" && dados.column.index === 5 && d.despensa[dados.row.index]) {
+          dados.cell.styles.textColor = COR_STATUS[d.despensa[dados.row.index].chave];
+          dados.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+
+    // --- Tabela 2: produtos gerais ---
+    let y = doc.lastAutoTable.finalY + 12;
+    if (y > doc.internal.pageSize.getHeight() - 30) {
+      doc.addPage();
+      y = 16;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Produtos gerais", 14, y);
+
+    doc.autoTable({
+      startY: y + 4,
+      head: [CABECALHO_PRODUTOS],
+      body: d.produtos.length
+        ? d.produtos
+        : [[{ content: "Nenhum produto cadastrado.", colSpan: 3, styles: { halign: "center" } }]],
+      theme: "striped",
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: verde },
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } }
+    });
+
+    // --- Numeração das páginas ---
+    const total = doc.getNumberOfPages();
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      doc.text(
+        `Página ${i} de ${total}`,
+        doc.internal.pageSize.getWidth() - 14,
+        doc.internal.pageSize.getHeight() - 8,
+        { align: "right" }
+      );
+    }
+
+    doc.save(`relatorio-despensa-${d.dataArquivo}.pdf`);
+    exibirMsg(relMsg, "PDF gerado!", true);
+  }
+
+  btnImprimir.addEventListener("click", imprimirRelatorio);
+  btnPdf.addEventListener("click", baixarPdf);
+
+  /* ======================================================================
+     10. UTILITÁRIOS
      ====================================================================== */
 
   /** Converte um objeto Date para o formato dd/mm/aaaa. */
