@@ -70,14 +70,14 @@
         </section>
 
         <!-- LEGENDA -->
-        <section aria-labelledby="titulo-legenda" class="card">
+      <!--section aria-labelledby="titulo-legenda" class="card">
           <h2 id="titulo-legenda">🚦 Situação dos produtos</h2>
           <p>🟢 <strong>Verde:</strong> produto dentro do prazo (mais de 7 dias).</p>
           <p>🟡 <strong>Amarelo:</strong> produto próximo do vencimento (1 a 7 dias).</p>
           <p>🔴 <strong>Vermelho:</strong> produto vencido (vence hoje ou já passou).</p>
         </section>
 
-        <!-- FORMULÁRIO DE CADASTRO DE INGREDIENTES -->
+        <!-FORMULÁRIO DE CADASTRO DE INGREDIENTES -->
         <section id="produtos-despensa" aria-labelledby="titulo-cadastro-despensa" class="card">
           <h2 id="titulo-cadastro-despensa">📦 Cadastrar ingrediente na despensa</h2>
           <form id="formProduto">
@@ -93,8 +93,10 @@
                   <option value="">Selecione</option>
                   <option value="Grãos">Grãos</option>
                   <option value="Carnes">Carnes</option>
+                  <option value="massas">Massas</option>
                   <option value="Verduras">Verduras</option>
                   <option value="Frutas">Frutas</option>
+                  <option value="trigo">Trigo</option>
                   <option value="Laticínios">Laticínios</option>
                   <option value="Temperos">Temperos</option>
                   <option value="Legumes">Legumes</option>
@@ -131,7 +133,7 @@
 
               <div>
                 <label for="valor">Preço do produto (R$)</label>
-                <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Ex: 12,50">
+                <input type="number" id="valor" name="valor" step="0.01" min="0" placeholder="Ex: R$ 12,50">
               </div>
             </div>
 
@@ -165,6 +167,18 @@
         <section aria-labelledby="titulo-alertas" class="card">
           <h2 id="titulo-alertas">⚠️ Alertas de validade</h2>
           <div id="alertas"></div>
+        </section>
+      </div>
+
+      <!-- RELATÓRIO: IMPRIMIR / BAIXAR PDF -->
+        <section aria-labelledby="titulo-relatorio" class="card">
+          <h2 id="titulo-relatorio">🖨️ Relatório</h2>
+          <p class="sub">Inclui o resumo do estoque, os ingredientes da despensa e os produtos cadastrados.</p>
+          <div class="row">
+            <button type="button" id="btnImprimir">🖨️ Imprimir</button>
+            <button type="button" id="btnPdf" class="sec">📄 Baixar PDF</button>
+          </div>
+          <p class="msg" id="relMsg" role="alert"></p>
         </section>
       </div>
 
@@ -246,6 +260,12 @@
     </section>
 
   </main>
+  <!-- Área usada só na impressão (fica oculta na tela) -->
+  <div id="relatorioImpressao" class="relatorio-impressao" aria-hidden="true"></div>
+
+  <!-- Bibliotecas para gerar o PDF (precisam de internet) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="./JS/script.js"></script>
 </body>
 
