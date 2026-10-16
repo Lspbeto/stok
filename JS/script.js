@@ -118,6 +118,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return d;
   }
 
+  /**
+   * Normaliza um nome para comparação: ignora maiúsculas/minúsculas,
+   * acentos e espaços repetidos. Ex.: "  Açúcar " e "acucar" são iguais.
+   */
+  function normalizarNome(texto) {
+    return String(texto)
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ");
+  }
+
+  /**
+   * CONSULTA: verifica se já existe um item com esse nome na lista.
+   * @param {Array} lista       - itensDespensa ou produtosSimples
+   * @param {string} nome       - nome que se quer cadastrar
+   * @param {number|null} idIgnorar - id do item em edição (ele não conta como duplicado)
+   * @returns {object|undefined} o item encontrado, ou undefined se não existe
+   */
+  function buscarDuplicado(lista, nome, idIgnorar = null) {
+    const alvo = normalizarNome(nome);
+    return lista.find((i) => i.id !== idIgnorar && normalizarNome(i.nome) === alvo);
+  }
+
+  // Mensagem de aviso do formulário da despensa
+  const despMsg = document.getElementById("despMsg");
+
   /* ======================================================================
      3. INICIALIZAÇÃO
      ====================================================================== */
@@ -295,6 +323,13 @@ document.addEventListener("DOMContentLoaded", () => {
       local: document.getElementById("local").value.trim() || "-", // vazio vira "-"
       valor: parseFloat(document.getElementById("valor").value) || 0 // vazio vira 0
     };
+
+    // CONSULTA: já existe esse ingrediente? (ao editar, ignora o próprio item)
+    const duplicado = buscarDuplicado(itensDespensa, dados.nome, editandoDespensaId);
+    if (duplicado) {
+      exibirMsg(despMsg, `"${duplicado.nome}" já está cadastrado na despensa. Edite o item existente em vez de criar outro.`);
+      return; // interrompe: não salva
+    }
 
     if (editandoDespensaId !== null) {
       // ----- EDIÇÃO: mantém o id e troca os demais dados -----
@@ -494,6 +529,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!nome || isNaN(preco) || isNaN(qtd)) {
       exibirMsg(prodMsg, "Preencha todos os campos corretamente.");
       return;
+    }
+
+    // CONSULTA: já existe um produto com esse nome? (ao editar, ignora o próprio)
+    const duplicado = buscarDuplicado(produtosSimples, nome, editandoProdutoId);
+    if (duplicado) {
+      exibirMsg(prodMsg, `O produto "${duplicado.nome}" já está cadastrado.`);
+      return; // interrompe: não salva
     }
 
     const editando = editandoProdutoId !== null;
@@ -869,7 +911,161 @@ document.addEventListener("DOMContentLoaded", () => {
   btnPdf.addEventListener("click", baixarPdf);
 
   /* ======================================================================
-     10. UTILITÁRIOS
+     10. SUGESTÕES: LISTA DOS JÁ CADASTRADOS ENQUANTO DIGITA
+     ====================================================================== */
+
+  // Guarda a função "fechar" de cada lista para fechar todas de uma vez
+  const fechadoresSugestoes = [];
+
+  /** "2026-10-20" -> "20/10/2026" */
+  function dataBRdeISO(iso) {
+    const [ano, mes, dia] = String(iso).split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
+
+  /**
+   * Liga uma lista de sugestões a um campo de texto.
+   * Ao digitar (ou clicar no campo), aparece uma aba logo abaixo mostrando
+   * os itens já cadastrados que combinam com o que foi digitado.
+   *
+   * @param {HTMLInputElement} input - campo que o usuário digita
+   * @param {Function} obterItens    - devolve a lista ATUAL de itens:
+   *                                   [{ titulo, detalhe, aoEscolher? }]
+   * @param {string} plural          - nome usado nos textos (ex.: "ingredientes")
+   */
+  function ativarSugestoes(input, obterItens, plural) {
+    const pai = input.parentElement;
+    const caixa = document.createElement("div");
+    caixa.className = "sugestoes hidden";
+    caixa.setAttribute("role", "listbox");
+
+    pai.classList.add("tem-sugestoes"); // position: relative (ver CSS)
+    pai.appendChild(caixa);
+    input.setAttribute("autocomplete", "off"); // evita a lista do navegador por cima
+
+    function fechar() {
+      caixa.classList.add("hidden");
+    }
+    fechadoresSugestoes.push(fechar);
+
+    function abrir() {
+      const termo = normalizarNome(input.value);
+      const todos = obterItens();
+      const lista = termo
+        ? todos.filter((i) => normalizarNome(i.titulo).includes(termo))
+        : todos;
+
+      caixa.innerHTML = "";
+
+      // Cabeçalho com o resumo
+      const cab = document.createElement("div");
+      cab.className = "sug-cab";
+      if (todos.length === 0) {
+        cab.textContent = `Nenhum item cadastrado ainda em ${plural}.`;
+      } else if (lista.length === 0) {
+        cab.textContent = `Nenhum cadastrado parecido: pode cadastrar.`;
+      } else {
+        const clicavel = lista.some((i) => i.aoEscolher);
+        cab.textContent =
+          `Já cadastrados (${lista.length})` + (clicavel ? " - clique para editar" : "");
+      }
+      caixa.appendChild(cab);
+
+      // Itens (no máximo 50 para não pesar; a lista rola)
+      lista.slice(0, 50).forEach((item) => {
+        const linha = document.createElement("div");
+        linha.className = "sug-item";
+        linha.setAttribute("role", "option");
+
+        const igual = normalizarNome(item.titulo) === termo;
+        if (igual) linha.classList.add("igual");
+        if (item.aoEscolher) linha.classList.add("clicavel");
+
+        const nome = document.createElement("strong");
+        nome.textContent = item.titulo;
+        linha.appendChild(nome);
+
+        if (item.detalhe) {
+          const det = document.createElement("small");
+          det.textContent = item.detalhe;
+          linha.appendChild(det);
+        }
+        if (igual) {
+          const aviso = document.createElement("span");
+          aviso.className = "sug-aviso";
+          aviso.textContent = "já existe";
+          linha.appendChild(aviso);
+        }
+
+        // mousedown (e não click) para rodar antes de o campo perder o foco
+        linha.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          if (item.aoEscolher) {
+            fechar(); // a lista só reabre ao digitar/clicar no campo
+            item.aoEscolher();
+          }
+        });
+        caixa.appendChild(linha);
+      });
+
+      caixa.classList.remove("hidden");
+    }
+
+    input.addEventListener("input", abrir); // sempre que digitar
+    input.addEventListener("click", abrir); // ao clicar no campo
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") fechar();
+    });
+    // Clicou fora do campo/lista: fecha
+    document.addEventListener("click", (e) => {
+      if (!pai.contains(e.target)) fechar();
+    });
+  }
+
+  // Ao enviar o formulário (ex.: ENTER), fecha as listas abertas
+  document.addEventListener("submit", () => fechadoresSugestoes.forEach((f) => f()));
+
+  // --- Ingredientes da despensa (clique = editar o item) ---
+  ativarSugestoes(
+    document.getElementById("produto"),
+    () =>
+      itensDespensa
+        .filter((i) => i.id !== editandoDespensaId) // o item em edição não aparece
+        .map((i) => ({
+          titulo: i.nome,
+          detalhe: `${i.categoria} · ${i.quantidade} ${i.unidade} · vence ${dataBRdeISO(i.validade)}`,
+          aoEscolher: () => iniciarEdicaoDespensa(i.id)
+        })),
+    "ingredientes"
+  );
+
+  // --- Produtos gerais (clique = editar o produto) ---
+  ativarSugestoes(
+    pNome,
+    () =>
+      produtosSimples
+        .filter((p) => p.id !== editandoProdutoId)
+        .map((p) => ({
+          titulo: p.nome,
+          detalhe: `${moeda(p.preco)} · qtd ${p.qtd}`,
+          aoEscolher: () => iniciarEdicaoProduto(p.id)
+        })),
+    "produtos"
+  );
+
+  // --- Usuários (só consulta; senhas nunca são exibidas) ---
+  ativarSugestoes(
+    uNome,
+    () =>
+      usuarios.map((u) => ({
+        titulo: u.username,
+        detalhe: u.username === usuarioLogado ? "você" : ""
+      })),
+    "usuários"
+  );
+
+  /* ======================================================================
+     11. UTILITÁRIOS
      ====================================================================== */
 
   /** Converte um objeto Date para o formato dd/mm/aaaa. */
