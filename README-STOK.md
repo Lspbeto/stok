@@ -43,7 +43,13 @@ Em outro terminal, abra a pasta principal e inicie o front com Live Server no VS
 - Aba Desfazimento: reverte entrada/saída, exige motivo, mantém a operação original e cria registro de reversão. Admin pode desfazer movimentações de todos; operador somente as próprias. Não é possível desfazer a mesma operação duas vezes.
 - Histórico com filtros de data e impressão/salvar em PDF.
 - Envio manual do histórico por e-mail como arquivo CSV. Administrador recebe todo o histórico; operador recebe apenas as próprias movimentações.
-- Usuários com perfis admin e operador.
+- Usuários com perfis admin e operador; cada operador deve ser vinculado a um setor (ex.: Cozinha, Limpeza, Padaria ou Atendimento).
+- Mercadorias e bens permanentes cadastrados separadamente. Para cada bem, cadastre uma unidade por número de patrimônio, informe conservação e setor responsável.
+- Entrega de mercadorias do estoque para um setor: o saldo do estoque é reduzido no momento da entrega.
+- Prestação de contas do operador: devolução, consumo, extravio, doação, venda, transferência ou outro destino. Extravio, doação, venda e outros exigem justificativa.
+- A prestação só pode ser concluída quando a soma das destinações for exatamente igual à quantidade entregue. A devolução volta ao estoque; os outros destinos não geram uma segunda baixa.
+- Transferência de mercadoria cria uma nova responsabilidade para o setor de destino, sem voltar ao estoque. Bens permanentes podem ter o setor responsável transferido sem serem tratados como consumo.
+- Registros de entrega, destinação, fechamento e transferência ficam no histórico; não se apaga a operação original.
 
 **Atenção:** a validade atualmente é uma data por cadastro de produto. Se o mesmo produto tiver lotes diferentes com datas de validade diferentes, será necessário evoluir para controle de lotes, cada um com quantidade e validade próprias. Para mercadinhos isso é recomendado quando há reposições com vencimentos diferentes.
 
@@ -70,5 +76,7 @@ Depois, atualize `front/js/config.js` para o endereço público da API, por exem
 
 ## 5. Observações
 
-- Teste entradas, saídas, desfazimento, validade e e-mail localmente antes de publicar.
+- Teste entradas, saídas, entregas, todos os tipos de destinação, devoluções, transferências entre setores, conclusão com saldo exato, bens patrimoniais, validade e e-mail localmente antes de publicar.
+- Na configuração inicial, crie usuários operadores com o nome exato do setor que será usado nas entregas. O setor é informado como texto no cadastro e na entrega.
+- Bens permanentes são cadastrados individualmente (quantidade 1 por número de patrimônio).
 - Se uma senha/URI do MongoDB foi publicada anteriormente, troque-a no MongoDB Atlas.
