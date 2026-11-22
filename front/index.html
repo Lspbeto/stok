@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STOK - Controle de Estoque</title><link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="container">
+    <header><h1>STOK</h1><p>Controle de estoque e histórico de operações</p></header>
+    <section id="login" class="panel">
+      <h2>Entrar no sistema</h2>
+      <form id="loginForm"><label>E-mail<input id="email" type="email" required autocomplete="username"></label><label>Senha<input id="password" type="password" required autocomplete="current-password"></label><button>Entrar</button></form>
+    </section>
+    <section id="app" hidden>
+      <div class="toolbar"><span id="welcome"></span><button id="logout" class="secondary">Sair</button></div>
+      <nav><button data-tab="products">Estoque</button><button data-tab="history">Histórico</button><button data-tab="users" id="usersTab" hidden>Usuários</button></nav>
+      <section id="products" class="panel tab"><h2>Produtos</h2>
+        <form id="productForm" class="form-grid"><input id="productName" placeholder="Nome do produto" required><input id="productCode" placeholder="Código"><input id="quantity" type="number" min="0" placeholder="Quantidade" value="0"><input id="minimum" type="number" min="0" placeholder="Estoque mínimo" value="0"><input id="description" placeholder="Descrição"><button>Cadastrar produto</button></form>
+        <div class="table-wrap"><table><thead><tr><th>Produto</th><th>Código</th><th>Qtd.</th><th>Mínimo</th><th>Ação</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+      </section>
+      <section id="history" class="panel tab" hidden><h2>Histórico</h2><div class="toolbar"><label>De <input id="fromDate" type="date"></label><label>Até <input id="toDate" type="date"></label><button id="filterHistory">Filtrar</button><button id="printHistory" class="secondary">Imprimir relatório</button></div><div class="table-wrap"><table id="historyTable"><thead><tr><th>Data</th><th>Usuário</th><th>Perfil</th><th>Ação</th><th>Detalhes</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+      <section id="users" class="panel tab" hidden><h2>Criar usuário</h2><form id="userForm" class="form-grid"><input id="userName" placeholder="Nome" required><input id="userEmail" type="email" placeholder="E-mail" required><input id="userPassword" type="password" minlength="8" placeholder="Senha (mínimo 8 caracteres)" required><select id="userRole"><option value="operador">Operador</option><option value="admin">Administrador</option></select><button>Criar usuário</button></form></section>
+    </section>
+    <p id="message" role="status"></p>
+  </main>
+  <script src="js/config.js"></script><script src="js/app.js"></script>
+</body></html>
