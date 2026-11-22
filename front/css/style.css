@@ -26,3 +26,13 @@
 .signup-box label{display:grid;gap:6px;margin:0}
 .signup-box input{width:100%}
 .signup-box button{width:100%;margin-top:4px}
+
+/* Cadastro em tela própria, com a mesma identidade visual do login. */
+.register-link{display:block;width:100%;margin-top:16px;background:transparent;color:var(--blue);border:1px solid #dce5f1}
+.register-link:hover{background:#f4f7ff}
+.product-field-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end}
+.product-field-row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.product-field-row label{margin:0;min-width:0}
+.product-field-row input,.product-field-row select{width:100%;min-width:0}
+.goods-card,.asset-card{display:flex;flex-direction:column;gap:14px}
+@media(max-width:720px){.product-field-row,.product-field-row.three{grid-template-columns:1fr}}
