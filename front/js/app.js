@@ -25,14 +25,36 @@ document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()
   if(b.dataset.tab==="deliveries")loadDeliveries();
 }));
 function formatDate(value){if(!value)return "—";const d=new Date(String(value).slice(0,10)+"T00:00:00");return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("pt-BR");}
-function toggleProductFields(){const asset=$("productCategory").value==="BEM";$("goodsFields").hidden=asset;$("assetFields").hidden=!asset;}
+function toggleProductFields(){
+ const asset=$("productCategory").value==="BEM";
+ $("goodsFields").hidden=asset;$("assetFields").hidden=!asset;
+ $("productCode").required=!asset;
+ $("quantity").required=!asset;
+ $("unit").required=!asset;
+ $("expiryDate").required=false;
+ $("patrimonyCode").required=asset;
+ $("responsibleSector").required=asset;
+}
 $("productCategory").addEventListener("change",toggleProductFields);
 toggleProductFields();
 $("productForm").addEventListener("submit",async e=>{e.preventDefault();try{
  const asset=$("productCategory").value==="BEM";
- const payload={name:$("productName").value,category:asset?"BEM":"MERCADORIA",quantity:asset?1:Number($("quantity").value),minimum:0,unit:asset?"un":$("unit").value,entryDate:(asset?$("assetEntryDate").value:$("entryDate").value)||new Date().toISOString().slice(0,10),expiryDate:asset?null:($("expiryDate").value||null),code:asset?"":$("productCode").value,description:asset?$("condition").value:$("description").value,patrimonyCode:asset?$("patrimonyCode").value:"",condition:asset?$("condition").value:"",responsibleSector:asset?$("responsibleSector").value:$("goodsSector").value};
+ const payload={
+  name:$("productName").value.trim(),
+  category:asset?"BEM":"MERCADORIA",
+  quantity:asset?1:Number($("quantity").value),
+  minimum:0,
+  unit:asset?"un":$("unit").value,
+  entryDate:(asset?$("assetEntryDate").value:$("entryDate").value)||new Date().toISOString().slice(0,10),
+  expiryDate:asset?null:($("expiryDate").value||null),
+  code:asset?"":$("productCode").value.trim(),
+  description:asset?"":$("description").value.trim(),
+  patrimonyCode:asset?$("patrimonyCode").value.trim():"",
+  condition:asset?$("condition").value.trim():"",
+  responsibleSector:asset?$("responsibleSector").value.trim():$("goodsSector").value.trim()
+ };
  await api("/products",{method:"POST",body:JSON.stringify(payload)});
- e.target.reset();$("quantity").value=0;toggleProductFields();await loadProducts();message("Item cadastrado.");
+ e.target.reset();$("quantity").value=0;$("assetQuantity").value=1;toggleProductFields();await loadProducts();message("Item cadastrado.");
  }catch(err){message(err.message,true);}});
 function expiryInfo(date){
  if(!date)return {text:"Não informada",level:"neutral"};
@@ -48,16 +70,27 @@ async function loadProducts(){try{
  const items=await api("/products");$("goodsBody").replaceChildren();$("assetsBody").replaceChildren();
  items.forEach(p=>{
   const asset=p.category==="BEM",tr=document.createElement("tr");
-  const values=asset?[p.name,p.patrimonyCode||"—","1",formatDate(p.entryDate),formatDate(p.lastExitDate),p.responsibleSector||"—"]:[p.name,p.code||"—",p.quantity??0,p.unit||"un",formatDate(p.entryDate)];
+  const values=asset
+   ?[p.name,p.patrimonyCode||"—","1",formatDate(p.entryDate),formatDate(p.lastExitDate),p.responsibleSector||"—",p.condition||"—"]
+   :[p.name,p.code||"—",p.quantity??0,p.unit||"un",formatDate(p.entryDate)];
   values.forEach(v=>{const td=document.createElement("td");td.textContent=v??"—";tr.appendChild(td);});
-  if(!asset){const td=document.createElement("td"),info=expiryInfo(p.expiryDate),tag=document.createElement("span");tag.className="expiry-alert expiry-"+info.level;tag.textContent=info.text;td.appendChild(tag);tr.appendChild(td);
+  if(!asset){
+   const td=document.createElement("td"),info=expiryInfo(p.expiryDate),tag=document.createElement("span");
+   tag.className="expiry-alert expiry-"+info.level;tag.textContent=info.text;td.appendChild(tag);tr.appendChild(td);
    const exit=document.createElement("td");exit.textContent=formatDate(p.lastExitDate);tr.appendChild(exit);
    const sector=document.createElement("td");sector.textContent=p.responsibleSector||"—";tr.appendChild(sector);
    const obs=document.createElement("td");obs.textContent=p.description||"—";tr.appendChild(obs);
   }
   const actions=document.createElement("td");
-  if(!asset){["ENTRADA","SAIDA"].forEach(type=>{const b=document.createElement("button");b.textContent=type==="ENTRADA"?"Entrada +":"Saída −";b.className=type==="SAIDA"?"secondary":"";b.style.margin="2px";b.addEventListener("click",()=>stockMove(p,type));actions.appendChild(b);});}
-  if(asset&&currentUser.role==="admin"){const transfer=document.createElement("button");transfer.textContent="Transferir setor";transfer.style.margin="2px";transfer.addEventListener("click",async()=>{const sector=prompt("Novo setor responsável pelo bem "+p.name+":",p.responsibleSector||"");if(!sector)return;try{const d=await api("/products/"+p._id+"/transfer",{method:"POST",body:JSON.stringify({sector})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});actions.appendChild(transfer);}
+  if(!asset){["ENTRADA","SAIDA"].forEach(type=>{
+   const b=document.createElement("button");b.textContent=type==="ENTRADA"?"Entrada +":"Saída −";b.className=type==="SAIDA"?"secondary":"";b.style.margin="2px";b.addEventListener("click",()=>stockMove(p,type));actions.appendChild(b);
+  });}
+  if(asset&&currentUser.role==="admin"){
+   const transfer=document.createElement("button");transfer.textContent="Transferir setor";transfer.style.margin="2px";
+   transfer.addEventListener("click",async()=>{const sector=prompt("Novo setor responsável pelo bem "+p.name+":",p.responsibleSector||"");if(!sector)return;try{const d=await api("/products/"+p._id+"/transfer",{method:"POST",body:JSON.stringify({sector})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});
+   actions.appendChild(transfer);
+   if(!p.lastExitDate){const exit=document.createElement("button");exit.textContent="Registrar saída";exit.className="secondary";exit.style.margin="2px";exit.addEventListener("click",async()=>{const reason=prompt("Motivo da saída definitiva do bem:");if(reason===null)return;try{const d=await api("/products/"+p._id+"/exit",{method:"POST",body:JSON.stringify({reason})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});actions.appendChild(exit);}
+  }
   const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.style.margin="2px";del.addEventListener("click",async()=>{if(!confirm("Deseja desativar "+p.name+"?"))return;try{await api("/products/"+p._id,{method:"DELETE"});loadProducts();message("Item desativado.");}catch(err){message(err.message,true);}});actions.appendChild(del);tr.appendChild(actions);
   (asset?$("assetsBody"):$("goodsBody")).appendChild(tr);
  });
