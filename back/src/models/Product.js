@@ -9,6 +9,8 @@ const schema = new mongoose.Schema({
   condition: { type: String, trim: true, default: "" },
   // Setor que atualmente responde pelo bem patrimonial.
   responsibleSector: { type: String, trim: true, default: "" },
+  entryDate: { type: Date, default: null },
+  lastExitDate: { type: Date, default: null },
   quantity: { type: Number, min: 0, default: 0 },
   minimum: { type: Number, min: 0, default: 0 },
   unit: { type: String, trim: true, default: "un" },
