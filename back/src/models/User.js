@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ["admin", "operador"], default: "operador" },
   // O setor indica onde o operador trabalha e para onde recebe materiais.
   sector: { type: String, trim: true, default: "" },
-  active: { type: Boolean, default: true }
+  active: { type: Boolean, default: true },
+  passwordResetTokenHash: { type: String, default: null, select: false },
+  passwordResetExpires: { type: Date, default: null, select: false }
 }, { timestamps: true });
 module.exports = mongoose.model("User", userSchema);
