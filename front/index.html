@@ -9,11 +9,29 @@
 <nav class="main-nav"><button class="tab-button active" data-tab="products">Estoque / Produtos</button><button class="tab-button" data-tab="deliveries">Entregas / Prestação de contas</button><button class="tab-button" data-tab="users" id="usersTab" hidden>Usuários</button><button class="tab-button" data-tab="history">Histórico e relatórios</button></nav>
 <section id="products" class="panel tab"><h2>Cadastro de produtos do mercadinho</h2>
 <form id="productForm" class="form-grid">
-<input id="productName" placeholder="Nome do produto ou bem" required><select id="productCategory"><option value="MERCADORIA">Mercadoria / consumo</option><option value="BEM">Bem permanente</option></select><input id="patrimonyCode" placeholder="Nº patrimônio (para bens)"><input id="productCode" placeholder="Código / código de barras">
-<input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade inicial" value="0"><input id="minimum" type="number" min="0" step="0.001" placeholder="Estoque mínimo" value="0">
-<select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select>
-<label>Data de validade<input id="expiryDate" type="date"></label><input id="description" placeholder="Descrição / observação"><input id="condition" placeholder="Estado de conservação (para bens)"><input id="responsibleSector" placeholder="Setor responsável (para bens)"><button>Cadastrar produto</button></form>
-<h3>Estoque cadastrado</h3><div class="table-wrap"><table><thead><tr><th>Produto</th><th>Código</th><th>Quantidade</th><th>Mínimo</th><th>Validade / alerta</th><th>Ações</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+<label>Tipo de item<select id="productCategory"><option value="MERCADORIA">Mercadoria / consumo</option><option value="BEM">Bem durável / permanente</option></select></label>
+<label>Nome do item<input id="productName" placeholder="Nome do produto ou bem" required></label>
+<div id="goodsFields" class="form-grid">
+<input id="productCode" placeholder="Código / código de barras">
+<input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade inicial" value="0">
+<label>Unidade de medida<select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select></label>
+<label>Data de entrada<input id="entryDate" type="date"></label>
+<label>Validade<input id="expiryDate" type="date"></label>
+<label>Data de saída (preenchida nas movimentações)<input id="goodsExitDate" type="date" disabled></label>
+<input id="goodsSector" placeholder="Setor responsável">
+<input id="description" placeholder="Observações">
+</div>
+<div id="assetFields" class="form-grid" hidden>
+<input id="patrimonyCode" placeholder="Nº de patrimônio">
+<input id="assetQuantity" value="1" readonly aria-label="Quantidade fixa: 1">
+<label>Data de entrada<input id="assetEntryDate" type="date"></label>
+<label>Data de saída (se houver)<input id="assetExitDate" type="date"></label>
+<input id="responsibleSector" placeholder="Setor responsável">
+<input id="condition" placeholder="Estado de conservação">
+</div>
+<button type="submit">Cadastrar item</button></form>
+<h3>Mercadorias / consumo</h3><div class="table-wrap"><table><thead><tr><th>Produto</th><th>Código</th><th>Quantidade</th><th>Unidade</th><th>Entrada</th><th>Validade</th><th>Saída</th><th>Setor responsável</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="goodsBody"></tbody></table></div>
+<h3>Bens duráveis / permanentes</h3><div class="table-wrap"><table><thead><tr><th>Bem</th><th>Nº patrimônio</th><th>Quantidade</th><th>Entrada</th><th>Saída</th><th>Setor responsável</th><th>Ações</th></tr></thead><tbody id="assetsBody"></tbody></table></div>
 </section>
 <section id="history" class="panel tab" hidden><h2>Histórico e relatórios</h2>
 <div class="toolbar"><label>De <input id="fromDate" type="date"></label><label>Até <input id="toDate" type="date"></label><button id="filterHistory">Filtrar</button><button id="printHistory" class="secondary">Imprimir / salvar PDF</button></div>
