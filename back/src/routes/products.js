@@ -47,7 +47,7 @@ router.post("/:id/transfer", adminOnly, async (req, res, next) => {
   try {
     const sector = String(req.body.sector || "").trim();
     if (!sector) return res.status(400).json({ message: "Informe o setor que receberá o bem." });
-    const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true, category: "BEM" }, { responsibleSector: sector }, { new: true });
+    const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true, category: "BEM" }, { responsibleSector: sector, lastSectorExitDate: new Date() }, { new: true });
     if (!product) return res.status(404).json({ message: "Bem patrimonial não encontrado." });
     await Movement.create({ action: "TRANSFERENCIA_BEM", details: "Bem transferido para " + sector, productId: product._id, productName: product.name, quantity: 1, unit: product.unit, sector, destination: "TRANSFERENCIA_BEM", userId: req.user._id, userName: req.user.name, role: req.user.role });
     res.json({ message: "Responsabilidade do bem transferida.", product });
