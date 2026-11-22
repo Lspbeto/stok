@@ -10,7 +10,7 @@ const movementRoutes = require("./routes/movements");
 const deliveryRoutes = require("./routes/deliveries");
 const app = express();
 app.use(cors({ origin: process.env.FRONT_ORIGIN ? process.env.FRONT_ORIGIN.split(",") : true }));
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true, message: "API STOK funcionando" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
