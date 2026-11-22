@@ -1,10 +1,13 @@
-// Cadastro de produtos do mercadinho.
-// "unit" informa como o estoque é contado; "expiryDate" registra a validade cadastrada.
+// Cadastro de mercadorias e bens permanentes.
 const mongoose = require("mongoose");
 const schema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   code: { type: String, trim: true, default: "" },
   description: { type: String, default: "" },
+  // MERCADORIA é controlada por quantidade; BEM pode ter patrimônio individual.
+  category: { type: String, enum: ["MERCADORIA", "BEM"], default: "MERCADORIA" },
+  patrimonyCode: { type: String, trim: true, default: "" },
+  condition: { type: String, trim: true, default: "" },
   quantity: { type: Number, min: 0, default: 0 },
   minimum: { type: Number, min: 0, default: 0 },
   unit: { type: String, trim: true, default: "un" },
