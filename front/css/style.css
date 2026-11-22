@@ -117,3 +117,10 @@
 #products .table-wrap::-webkit-scrollbar{height:12px}
 #products .table-wrap::-webkit-scrollbar-thumb{background:#9aaac2;border-radius:10px}
 #products .table-wrap::-webkit-scrollbar-track{background:#edf1f7;border-radius:10px}
+
+.forgot-link{display:block;width:100%;margin-top:10px;background:transparent;color:var(--blue);border:1px solid #dce5f1}
+.database-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end}
+.database-actions label{margin:0;font-weight:650}
+.database-actions input{width:100%;margin-top:6px}
+#databaseTools{border-left:4px solid #d18a18}
+@media(max-width:680px){.database-actions{grid-template-columns:1fr}}
