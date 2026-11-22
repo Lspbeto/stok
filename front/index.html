@@ -6,13 +6,13 @@
 <section id="login" class="panel"><h2>Entrar no sistema</h2><form id="loginForm"><label>E-mail<input id="email" type="email" required autocomplete="username"></label><label>Senha<input id="password" type="password" required autocomplete="current-password"></label><button>Entrar</button></form></section>
 <section id="app" hidden>
 <div class="toolbar"><span id="welcome"></span><button id="logout" class="secondary">Sair</button></div>
-<nav><button data-tab="products">Estoque / Produtos</button><button data-tab="history">Histórico e relatório</button><button data-tab="undo">Desfazimento</button><button data-tab="users" id="usersTab" hidden>Usuários</button></nav>
+<nav><button data-tab="products">Estoque / Produtos</button><button data-tab="history">Histórico e relatório</button><button data-tab="deliveries">Entregas / Prestação de contas</button><button data-tab="undo">Desfazer erro</button><button data-tab="users" id="usersTab" hidden>Usuários</button></nav>
 <section id="products" class="panel tab"><h2>Cadastro de produtos do mercadinho</h2>
 <form id="productForm" class="form-grid">
-<input id="productName" placeholder="Nome do produto" required><input id="productCode" placeholder="Código / código de barras">
+<input id="productName" placeholder="Nome do produto ou bem" required><select id="productCategory"><option value="MERCADORIA">Mercadoria / consumo</option><option value="BEM">Bem permanente</option></select><input id="patrimonyCode" placeholder="Nº patrimônio (para bens)"><input id="productCode" placeholder="Código / código de barras">
 <input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade inicial" value="0"><input id="minimum" type="number" min="0" step="0.001" placeholder="Estoque mínimo" value="0">
 <select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select>
-<label>Data de validade<input id="expiryDate" type="date"></label><input id="description" placeholder="Descrição / observação"><button>Cadastrar produto</button></form>
+<label>Data de validade<input id="expiryDate" type="date"></label><input id="description" placeholder="Descrição / observação"><input id="condition" placeholder="Estado de conservação (para bens)"><button>Cadastrar produto</button></form>
 <h3>Estoque cadastrado</h3><div class="table-wrap"><table><thead><tr><th>Produto</th><th>Código</th><th>Quantidade</th><th>Mínimo</th><th>Validade / alerta</th><th>Ações</th></tr></thead><tbody id="productsBody"></tbody></table></div>
 </section>
 <section id="history" class="panel tab" hidden><h2>Histórico de movimentações</h2>
@@ -20,7 +20,11 @@
 <form id="emailForm" class="form-grid"><input id="reportEmail" type="email" placeholder="Enviar relatório para este e-mail" required><button>Enviar relatório por e-mail</button></form>
 <p>O relatório será enviado como arquivo CSV, que pode ser aberto no Excel. Operadores recebem apenas as próprias movimentações.</p>
 <div class="table-wrap"><table><thead><tr><th>Data</th><th>Usuário</th><th>Perfil</th><th>Ação</th><th>Produto</th><th>Qtd.</th><th>Detalhes</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+<section id="deliveries" class="panel tab" hidden><h2>Entregas aos setores e prestação de contas</h2>
+<p>O administrador registra a saída do estoque para um setor. O operador informa o destino de cada quantidade recebida. A prestação só pode ser encerrada quando a soma fechar exatamente.</p>
+<form id="deliveryForm" class="form-grid" hidden><select id="deliveryProduct" required></select><input id="deliveryQuantity" type="number" min="0.001" step="0.001" placeholder="Quantidade entregue" required><input id="deliverySector" placeholder="Setor que receberá" required><button>Registrar entrega ao setor</button></form>
+<h3>Entregas registradas</h3><div id="deliveryList"></div></section>
 <section id="undo" class="panel tab" hidden><h2>Desfazimento de movimentações</h2><p>Desfaça entradas ou saídas feitas por engano. O registro original permanece no histórico e uma nova movimentação registra a reversão. Não é possível desfazer duas vezes a mesma operação.</p><div class="table-wrap"><table><thead><tr><th>Data</th><th>Usuário</th><th>Movimentação</th><th>Produto</th><th>Quantidade</th><th>Estado</th><th>Ação</th></tr></thead><tbody id="undoBody"></tbody></table></div></section>
-<section id="users" class="panel tab" hidden><h2>Criar usuário</h2><form id="userForm" class="form-grid"><input id="userName" placeholder="Nome" required><input id="userEmail" type="email" placeholder="E-mail" required><input id="userPassword" type="password" minlength="8" placeholder="Senha (mínimo 8 caracteres)" required><select id="userRole"><option value="operador">Operador</option><option value="admin">Administrador</option></select><button>Criar usuário</button></form></section>
+<section id="users" class="panel tab" hidden><h2>Criar usuário</h2><form id="userForm" class="form-grid"><input id="userName" placeholder="Nome" required><input id="userEmail" type="email" placeholder="E-mail" required><input id="userPassword" type="password" minlength="8" placeholder="Senha (mínimo 8 caracteres)" required><input id="userSector" placeholder="Setor do operador (ex.: Cozinha)" required><select id="userRole"><option value="operador">Operador</option><option value="admin">Administrador</option></select><button>Criar usuário</button></form></section>
 </section><p id="message" role="status"></p></main>
 <script src="js/config.js"></script><script src="js/app.js"></script></body></html>
