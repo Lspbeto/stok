@@ -11,7 +11,7 @@ async function api(path, options={}) {
 }
 function showLoggedIn(user) {
   currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("app").hidden=false;
-  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=user.role!=="admin";
+  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=user.role!=="admin"; $("databaseTab").hidden=user.role!=="admin"; $("databaseTools").hidden=true;
   loadProducts();
   if(user.role==="operador") $("deliveryForm").hidden=true;
 }
@@ -19,8 +19,14 @@ $("loginForm").addEventListener("submit",async e=>{e.preventDefault();try{const 
 // Alterna entre login e cadastro mantendo o mesmo cartão visual.
 $("showRegister").addEventListener("click",()=>{$("login").hidden=true;$("registerScreen").hidden=false;});
 $("backToLogin").addEventListener("click",()=>{$("registerScreen").hidden=true;$("login").hidden=false;});
+$("showForgotPassword").addEventListener("click",()=>{$("login").hidden=true;$("forgotScreen").hidden=false;});
+$("backFromForgot").addEventListener("click",()=>{$("forgotScreen").hidden=true;$("login").hidden=false;});
+$("forgotForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/forgot-password",{method:"POST",body:JSON.stringify({email:$("forgotEmail").value})});message(d.message);$("forgotScreen").hidden=true;$("login").hidden=false;}catch(err){message(err.message,true);}});
+let resetToken=new URLSearchParams(window.location.search).get("reset");
+if(resetToken){$("login").hidden=true;$("registerScreen").hidden=true;$("forgotScreen").hidden=true;$("resetScreen").hidden=false;}
+$("resetForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/reset-password",{method:"POST",body:JSON.stringify({token:resetToken,password:$("resetPassword").value})});message(d.message);window.history.replaceState({},"",window.location.pathname);$("resetScreen").hidden=true;$("login").hidden=false;resetToken=null;e.target.reset();}catch(err){message(err.message,true);}});
 $("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
-$("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("registerScreen").hidden=true;$("login").hidden=false;});
+$("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("registerScreen").hidden=true;$("forgotScreen").hidden=true;$("resetScreen").hidden=true;$("login").hidden=false;});
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.hidden=x.id!==b.dataset.tab);
   document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("active",x===b));
@@ -143,5 +149,29 @@ async function loadDeliveries(){
  }catch(err){message(err.message,true);}
 }
 $("deliveryForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/deliveries",{method:"POST",body:JSON.stringify({productId:$("deliveryProduct").value,quantity:Number($("deliveryQuantity").value),sector:$("deliverySector").value})});e.target.reset();message("Entrega registrada e estoque baixado.");loadProducts();loadDeliveries();}catch(err){message(err.message,true);}});
+
+/* Backup e restauração: a API confere novamente o perfil de administrador. */
+$("backupButton").addEventListener("click",async()=>{
+ try{
+  const response=await fetch(API+"/database/backup",{headers:{Authorization:"Bearer "+token}});
+  if(!response.ok){const d=await response.json().catch(()=>({}));throw new Error(d.message||"Não foi possível gerar o backup.");}
+  const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="stok-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  message("Backup baixado. Guarde o arquivo em local seguro.");
+ }catch(err){message(err.message,true);}
+});
+$("restoreButton").addEventListener("click",async()=>{
+ const file=$("restoreFile").files[0];
+ if(!file){message("Selecione primeiro um arquivo de backup JSON.",true);return;}
+ if(!window.confirm("ATENÇÃO: a restauração substituirá os dados atuais do banco. Faça um backup antes. Deseja continuar?"))return;
+ const typed=window.prompt("Digite exatamente RESTAURAR STOK para confirmar:");
+ if(typed!=="RESTAURAR STOK"){message("Restauração cancelada.");return;}
+ try{
+  const backup=JSON.parse(await file.text());
+  const d=await api("/database/restore",{method:"POST",body:JSON.stringify({backup:backup,confirmation:typed})});
+  message(d.message);window.setTimeout(()=>window.location.reload(),1200);
+ }catch(err){message(err.message||"Arquivo inválido ou falha na restauração.",true);}
+});
+
 $("userForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/users",{method:"POST",body:JSON.stringify({name:$("userName").value,email:$("userEmail").value,password:$("userPassword").value,role:$("userRole").value,sector:$("userSector").value})});e.target.reset();message("Usuário criado.");}catch(err){message(err.message,true);}});
 (async()=>{if(!token)return;try{const user=await api("/auth/me");showLoggedIn(user);}catch(_){localStorage.removeItem("stok_token");token=null;}})();
