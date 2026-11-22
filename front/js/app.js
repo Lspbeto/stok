@@ -124,15 +124,36 @@ async function loadDeliveries(){
  try{
   const [items,products]=await Promise.all([api("/deliveries"),api("/products")]);
   const select=$("deliveryProduct");select.replaceChildren();
-  products.filter(p=>p.category!=="BEM").forEach(p=>{const o=document.createElement("option");o.value=p._id;o.textContent=p.name+" — disponível: "+p.quantity+" "+p.unit;select.appendChild(o);});
+  products.forEach(p=>{
+   const o=document.createElement("option");o.value=p._id;
+   o.dataset.category=p.category||"MERCADORIA";
+   o.textContent=(p.category==="BEM"?"[BEM PERMANENTE] ":"[CONSUMO] ")+p.name+
+    (p.category==="BEM"?" — Patrimônio: "+(p.patrimonyCode||"não informado")+" — Setor: "+(p.responsibleSector||"não informado"):
+     " — disponível: "+p.quantity+" "+p.unit);
+   select.appendChild(o);
+  });
+  function updateDeliveryQuantity(){
+   const asset=select.selectedOptions[0]?.dataset.category==="BEM";
+   $("deliveryQuantity").value=asset?1:"";
+   $("deliveryQuantity").max=asset?"1":"";
+   $("deliveryQuantity").readOnly=!!asset;
+   $("deliveryQuantity").placeholder=asset?"Bem individual (quantidade 1)":"Quantidade entregue";
+  }
+  select.removeEventListener("change",updateDeliveryQuantity);
+  select.addEventListener("change",updateDeliveryQuantity);
+  updateDeliveryQuantity();
   $("deliveryForm").hidden=currentUser.role!=="admin";
   $("deliveryList").replaceChildren();
   items.forEach(d=>{
    const card=document.createElement("article");card.className="panel";
-   const title=document.createElement("h3");title.textContent=d.productName+" — "+d.sector;card.appendChild(title);
-   const summary=document.createElement("p");summary.textContent="Entregue: "+d.quantity+" "+d.unit+" | Prestado: "+d.accounted+" | Falta: "+(d.quantity-d.accounted)+" | "+(d.closed?"CONCLUÍDA":"EM ABERTO");card.appendChild(summary);
+   const title=document.createElement("h3");title.textContent=(d.isAsset?"BEM PERMANENTE — ":"MERCADORIA — ")+d.productName+" — "+d.sector;card.appendChild(title);
+   const summary=document.createElement("p");
+   summary.textContent=d.isAsset
+    ?"Patrimônio: "+(d.patrimonyCode||"não informado")+" | Quantidade: 1 unidade | Responsável atual: "+d.sector+" | "+(d.condition?"Conservação: "+d.condition:"Responsabilidade patrimonial registrada")
+    :"Entregue: "+d.quantity+" "+d.unit+" | Prestado: "+d.accounted+" | Falta: "+(d.quantity-d.accounted)+" | "+(d.closed?"CONCLUÍDA":"EM ABERTO");
+   card.appendChild(summary);
    (d.entries||[]).forEach(e=>{const p=document.createElement("p");p.textContent=(e.destination||"DESTINO")+" — "+e.quantity+" "+e.unit+" — "+(e.details||"");card.appendChild(p);});
-   if(!d.closed){
+   if(!d.closed && !d.isAsset){
     const form=document.createElement("form");form.className="form-grid";
     const type=document.createElement("select");["DEVOLUCAO","CONSUMO","EXTRAVIO","DOACAO","VENDA","TRANSFERENCIA","OUTRO"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;type.appendChild(o);});
     const qty=document.createElement("input");qty.type="number";qty.min="0.001";qty.step="0.001";qty.placeholder="Quantidade";qty.required=true;
@@ -148,7 +169,11 @@ async function loadDeliveries(){
   });
  }catch(err){message(err.message,true);}
 }
-$("deliveryForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/deliveries",{method:"POST",body:JSON.stringify({productId:$("deliveryProduct").value,quantity:Number($("deliveryQuantity").value),sector:$("deliverySector").value})});e.target.reset();message("Entrega registrada e estoque baixado.");loadProducts();loadDeliveries();}catch(err){message(err.message,true);}});
+$("deliveryForm").addEventListener("submit",async e=>{e.preventDefault();try{
+ const selected=$("deliveryProduct").selectedOptions[0];
+ const isAsset=selected?.dataset.category==="BEM";
+ const amount=isAsset?1:Number($("deliveryQuantity").value);
+ await api("/deliveries",{method:"POST",body:JSON.stringify({productId:$("deliveryProduct").value,quantity:amount,sector:$("deliverySector").value})});e.target.reset();message("Entrega registrada e estoque baixado.");loadProducts();loadDeliveries();}catch(err){message(err.message,true);}});
 
 /* Backup e restauração: a API confere novamente o perfil de administrador. */
 $("backupButton").addEventListener("click",async()=>{
