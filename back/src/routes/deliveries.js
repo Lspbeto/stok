@@ -29,7 +29,7 @@ router.post("/", adminOnly, async (req, res, next) => {
     const { productId, quantity, sector } = req.body;
     const amount = Number(quantity);
     if (!mongoose.isValidObjectId(productId) || !Number.isFinite(amount) || amount <= 0 || !String(sector || "").trim()) return res.status(400).json({ message: "Informe produto, quantidade positiva e setor." });
-    const product = await Product.findOneAndUpdate({ _id: productId, active: true, category: { $ne: "BEM" }, quantity: { $gte: amount } }, { $inc: { quantity: -amount } }, { new: true });
+    const product = await Product.findOneAndUpdate({ _id: productId, active: true, category: { $ne: "BEM" }, quantity: { $gte: amount } }, { $inc: { quantity: -amount }, $set: { lastExitDate: new Date() } }, { new: true });
     if (!product) return res.status(400).json({ message: "Produto inexistente, inativo, bem permanente ou estoque insuficiente." });
     const row = await Movement.create({ action: "ENTREGA_SETOR", details: "Entrega de estoque ao setor " + String(sector).trim(), productId: product._id, productName: product.name, quantity: amount, unit: product.unit, beforeQuantity: product.quantity + amount, afterQuantity: product.quantity, sector: String(sector).trim(), ...actor(req.user) });
     res.status(201).json(row);
@@ -47,6 +47,8 @@ router.post("/:id/account", async (req, res, next) => {
     if (type === "TRANSFERENCIA" && !String(req.body.targetSector || "").trim()) return res.status(400).json({ message: "Informe o setor que recebeu a transferência." });
     const accounted = await totalAccounted(delivery._id);
     if (accounted + amount > delivery.quantity) return res.status(400).json({ message: "Quantidade excede o saldo ainda não prestado." });
+    // Registra quando o item deixa a guarda do setor (devolução, consumo, transferência etc.).
+    await Product.updateOne({ _id: delivery.productId }, { $set: { lastSectorExitDate: new Date() } });
     if (type === "DEVOLUCAO") {
       const updated = await Product.findOneAndUpdate({ _id: delivery.productId }, { $inc: { quantity: amount } }, { new: true });
       if (!updated) return res.status(409).json({ message: "Produto não encontrado para registrar a devolução." });
