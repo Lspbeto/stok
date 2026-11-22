@@ -53,4 +53,23 @@ router.post("/:id/transfer", adminOnly, async (req, res, next) => {
     res.json({ message: "Responsabilidade do bem transferida.", product });
   } catch (e) { next(e); }
 });
+
+// Registra a saída definitiva de um bem patrimonial, preservando seu cadastro e histórico.
+router.post("/:id/exit", adminOnly, async (req, res, next) => {
+  try {
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, active: true, category: "BEM", lastExitDate: null },
+      { lastExitDate: new Date() },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ message: "Bem não encontrado ou já possui saída registrada." });
+    await Movement.create({
+      action: "SAIDA_BEM",
+      details: String(req.body.reason || "Saída definitiva do bem").trim(),
+      productId: product._id, productName: product.name, quantity: 1, unit: "un",
+      sector: product.responsibleSector, userId: req.user._id, userName: req.user.name, role: req.user.role
+    });
+    res.json({ message: "Saída do bem registrada no histórico.", product });
+  } catch (e) { next(e); }
+});
 module.exports = router;
