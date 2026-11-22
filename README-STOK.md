@@ -1,59 +1,74 @@
 # STOK - Sistema de Controle de Estoque
 
-O projeto está separado em **back** (API/servidor) e **front** (site). A API usa Node.js, Express e MongoDB. O front é HTML, CSS e JavaScript puro.
+Projeto separado em **back** (API Node.js/Express/MongoDB) e **front** (HTML/CSS/JavaScript).
 
-## 1. Preparar o computador
-Instale Node.js LTS e Git. Abra o PowerShell na pasta do projeto.
+## 1. Testar localmente
 
-## 2. Configurar o back-end
+No PowerShell, dentro da pasta do projeto:
+
 ```powershell
 cd back
 npm install
 Copy-Item .env.example .env
 notepad .env
 ```
-No arquivo `.env`, informe a conexão do MongoDB Atlas em `MONGODB_URI` e crie um texto longo e aleatório em `JWT_SECRET`. Configure também o e-mail e senha inicial do administrador. Não compartilhe nem publique o arquivo `.env`.
 
-Criar o administrador (uma única vez):
+Preencha `MONGODB_URI`, `JWT_SECRET` e os dados do administrador. Nunca publique o arquivo `.env`.
+
+Configure o SMTP no mesmo `.env` para envio de relatório:
+- `SMTP_HOST`: servidor SMTP (ex.: `smtp.gmail.com`)
+- `SMTP_PORT`: normalmente `465` com SSL ou `587` com STARTTLS
+- `SMTP_SECURE`: `true` para porta 465; `false` para 587
+- `SMTP_USER`: conta de e-mail remetente
+- `SMTP_PASS`: senha de aplicativo/token SMTP, nunca a senha normal da conta
+- `SMTP_FROM`: nome e endereço que aparecerão como remetente
+
+Instale dependências (incluindo o envio de e-mail), crie o administrador se ainda não existir e inicie a API:
+
 ```powershell
+npm install
 npm run criar-admin
-```
-Iniciar a API:
-```powershell
 npm run dev
 ```
-Teste no navegador: http://localhost:3000/api/health
 
-## 3. Abrir o front-end
-Em outro terminal, entre na pasta `front` e abra o arquivo `index.html` no navegador. Em `front/js/config.js`, a variável `API_URL` define o endereço do servidor. Para teste local use `http://localhost:3000/api`.
+Teste: http://localhost:3000/api/health
 
-## 4. Publicar no GitHub
-Na pasta principal do projeto:
+Em outro terminal, abra a pasta principal e inicie o front com Live Server no VS Code. Em `front/js/config.js`, deixe `API_URL: "http://localhost:3000/api"` para teste local.
+
+## 2. Recursos incluídos
+
+- Cadastro de produtos com quantidade, estoque mínimo, código, descrição, unidade de medida e validade.
+- Unidades disponíveis: unidade, kg, g, litro, ml, pacote, caixa, dúzia e fardo.
+- Entradas e saídas com validação para impedir estoque negativo.
+- Aba Desfazimento: reverte entrada/saída, exige motivo, mantém a operação original e cria registro de reversão. Admin pode desfazer movimentações de todos; operador somente as próprias. Não é possível desfazer a mesma operação duas vezes.
+- Histórico com filtros de data e impressão/salvar em PDF.
+- Envio manual do histórico por e-mail como arquivo CSV. Administrador recebe todo o histórico; operador recebe apenas as próprias movimentações.
+- Usuários com perfis admin e operador.
+
+**Atenção:** a validade atualmente é uma data por cadastro de produto. Se o mesmo produto tiver lotes diferentes com datas de validade diferentes, será necessário evoluir para controle de lotes, cada um com quantidade e validade próprias. Para mercadinhos isso é recomendado quando há reposições com vencimentos diferentes.
+
+## 3. Publicar no GitHub
+
+Na pasta principal:
+
 ```powershell
 git status
 git add .
-git commit -m "Organiza projeto STOK em back e front"
+git commit -m "Adiciona desfazimento e recursos para mercadinho"
 git push origin reorganizacao-back-front
 ```
-Confira os arquivos na branch antes de integrar à branch principal.
 
-## 5. Publicar a API no Render
-Crie um Web Service conectado ao repositório. Configure:
+## 4. Publicar API no Render
+
 - Root Directory: `back`
 - Build Command: `npm install`
 - Start Command: `npm start`
-- Environment: `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN` e as variáveis `ADMIN_*` usadas para criar o primeiro administrador.
-- Configure `FRONT_ORIGIN` com o endereço publicado do front, se desejar restringir o CORS.
+- Cadastre no painel Environment as variáveis do `.env`, incluindo `MONGODB_URI`, `JWT_SECRET`, SMTP e `FRONT_ORIGIN`.
+- Não envie o arquivo `.env` ao GitHub.
 
-Depois de publicar, atualize `front/js/config.js` com `https://SEU-SERVICO.onrender.com/api`.
+Depois, atualize `front/js/config.js` para o endereço público da API, por exemplo `https://SEU-SERVICO.onrender.com/api`.
 
-## 6. Publicar o front
-No GitHub, habilite Pages para a pasta `/front` somente se o método de publicação escolhido permitir essa pasta como origem. Alternativamente, use um serviço de hospedagem estática conectado ao repositório e defina `front` como diretório de publicação.
+## 5. Observações
 
-## Observações importantes
-- Perfis: `admin` e `operador`. Somente administrador cria usuários.
-- Administrador vê todo o histórico; operador vê apenas suas próprias ações.
-- Exclusão de produto é lógica: o registro de histórico permanece.
-- O relatório usa a função de impressão do navegador (escolha "Salvar como PDF" para gerar PDF).
-- A aplicação é uma base inicial funcional; teste em ambiente local antes de usar em produção.
-- Se uma URI ou senha do MongoDB já foi publicada em algum commit, troque a senha no MongoDB Atlas. Apagar o arquivo atual não apaga o segredo do histórico do Git.
+- Teste entradas, saídas, desfazimento, validade e e-mail localmente antes de publicar.
+- Se uma senha/URI do MongoDB foi publicada anteriormente, troque-a no MongoDB Atlas.
