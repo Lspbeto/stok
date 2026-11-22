@@ -10,7 +10,8 @@ const schema = new mongoose.Schema({
   // Setor que atualmente responde pelo bem patrimonial.
   responsibleSector: { type: String, trim: true, default: "" },
   entryDate: { type: Date, default: null },
-  lastExitDate: { type: Date, default: null },
+  lastExitDate: { type: Date, default: null }, // Última saída registrada diretamente do estoque.
+  lastSectorExitDate: { type: Date, default: null }, // Última saída ou transferência registrada pelo setor.
   quantity: { type: Number, min: 0, default: 0 },
   minimum: { type: Number, min: 0, default: 0 },
   unit: { type: String, trim: true, default: "un" },
