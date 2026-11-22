@@ -13,13 +13,15 @@ async function totalAccounted(id) {
 }
 router.get("/", async (req, res, next) => {
   try {
-    const filter = { action: "ENTREGA_SETOR" };
+    const filter = { action: { $in: ["ENTREGA_SETOR", "ENTREGA_BEM"] } };
     if (req.user.role !== "admin") filter.sector = req.user.sector;
     const deliveries = await Movement.find(filter).sort({ createdAt: -1 }).lean();
     const result = await Promise.all(deliveries.map(async d => {
-      const entries = await Movement.find({ undoOf: d._id, action: "DESTINACAO" }).sort({ createdAt: 1 }).lean();
-      const closed = await Movement.exists({ undoOf: d._id, action: "FECHAMENTO_PRESTACAO" });
-      return { ...d, entries, accounted: entries.reduce((s,x)=>s+Number(x.quantity||0),0), closed: !!closed };
+      const isAsset = d.action === "ENTREGA_BEM";
+      const entries = isAsset ? [] : await Movement.find({ undoOf: d._id, action: "DESTINACAO" }).sort({ createdAt: 1 }).lean();
+      const closed = isAsset || !!(await Movement.exists({ undoOf: d._id, action: "FECHAMENTO_PRESTACAO" }));
+      const product = isAsset ? await Product.findById(d.productId).lean() : null;
+      return { ...d, isAsset, patrimonyCode: product?.patrimonyCode || "", condition: product?.condition || "", entries, accounted: entries.reduce((s,x)=>s+Number(x.quantity||0),0), closed };
     }));
     res.json(result);
   } catch (e) { next(e); }
@@ -29,9 +31,41 @@ router.post("/", adminOnly, async (req, res, next) => {
     const { productId, quantity, sector } = req.body;
     const amount = Number(quantity);
     if (!mongoose.isValidObjectId(productId) || !Number.isFinite(amount) || amount <= 0 || !String(sector || "").trim()) return res.status(400).json({ message: "Informe produto, quantidade positiva e setor." });
-    const product = await Product.findOneAndUpdate({ _id: productId, active: true, category: { $ne: "BEM" }, quantity: { $gte: amount } }, { $inc: { quantity: -amount }, $set: { lastExitDate: new Date() } }, { new: true });
-    if (!product) return res.status(400).json({ message: "Produto inexistente, inativo, bem permanente ou estoque insuficiente." });
-    const row = await Movement.create({ action: "ENTREGA_SETOR", details: "Entrega de estoque ao setor " + String(sector).trim(), productId: product._id, productName: product.name, quantity: amount, unit: product.unit, beforeQuantity: product.quantity + amount, afterQuantity: product.quantity, sector: String(sector).trim(), ...actor(req.user) });
+    const targetSector = String(sector).trim();
+    // Bem permanente é individual: não baixa quantidade de consumo. A entrega
+    // apenas muda a responsabilidade patrimonial para o setor informado.
+    const existing = await Product.findOne({ _id: productId, active: true });
+    if (!existing) return res.status(404).json({ message: "Item não encontrado ou inativo." });
+    let product, row;
+    if (existing.category === "BEM") {
+      if (amount !== 1) return res.status(400).json({ message: "Bem permanente é controlado individualmente. Informe quantidade 1." });
+      if (existing.lastExitDate) return res.status(409).json({ message: "Este bem possui saída definitiva registrada e não pode ser entregue." });
+      product = await Product.findOneAndUpdate(
+        { _id: productId, active: true, category: "BEM", lastExitDate: null },
+        { $set: { responsibleSector: targetSector, lastSectorExitDate: new Date() } },
+        { new: true }
+      );
+      if (!product) return res.status(409).json({ message: "Não foi possível atualizar a responsabilidade deste bem." });
+      row = await Movement.create({
+        action: "ENTREGA_BEM", details: "Entrega patrimonial ao setor " + targetSector,
+        productId: product._id, productName: product.name, quantity: 1, unit: "un",
+        sector: targetSector, destination: "RESPONSABILIDADE_PATRIMONIAL",
+        beforeQuantity: 1, afterQuantity: 1, ...actor(req.user)
+      });
+    } else {
+      product = await Product.findOneAndUpdate(
+        { _id: productId, active: true, category: { $ne: "BEM" }, quantity: { $gte: amount } },
+        { $inc: { quantity: -amount }, $set: { lastExitDate: new Date() } },
+        { new: true }
+      );
+      if (!product) return res.status(400).json({ message: "Produto inexistente, inativo ou estoque insuficiente." });
+      row = await Movement.create({
+        action: "ENTREGA_SETOR", details: "Entrega de estoque ao setor " + targetSector,
+        productId: product._id, productName: product.name, quantity: amount, unit: product.unit,
+        beforeQuantity: product.quantity + amount, afterQuantity: product.quantity,
+        sector: targetSector, ...actor(req.user)
+      });
+    }
     res.status(201).json(row);
   } catch (e) { next(e); }
 });
