@@ -52,6 +52,10 @@ router.post("/:id/account", async (req, res, next) => {
       if (!updated) return res.status(409).json({ message: "Produto não encontrado para registrar a devolução." });
     }
     const row = await Movement.create({ action: "DESTINACAO", details: note || type, productId: delivery.productId, productName: delivery.productName, quantity: amount, unit: delivery.unit, sector: delivery.sector, destination: type, allocations: [{ type, quantity: amount, note, targetSector: String(req.body.targetSector || "") }], undoOf: delivery._id, ...actor(req.user) });
+    // A transferência cria uma nova responsabilidade para o setor destino, sem retornar ao estoque.
+    if (type === "TRANSFERENCIA") {
+      await Movement.create({ action: "ENTREGA_SETOR", details: "Transferência recebida do setor " + delivery.sector, productId: delivery.productId, productName: delivery.productName, quantity: amount, unit: delivery.unit, sector: String(req.body.targetSector).trim(), ...actor(req.user) });
+    }
     res.status(201).json({ entry: row, totalAccounted: accounted + amount, remaining: delivery.quantity - accounted - amount });
   } catch (e) { next(e); }
 });
