@@ -15,5 +15,22 @@ router.post("/login", async (req, res, next) => {
     res.json({ token, user: publicUser(user) });
   } catch (err) { next(err); }
 });
+// Cadastro aberto: cria sempre operador e exige setor de trabalho.
+router.post("/register", async (req, res, next) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").toLowerCase().trim();
+    const password = String(req.body.password || "");
+    const sector = String(req.body.sector || "").trim();
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector) {
+      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres e setor." });
+    }
+    if (await User.exists({ email })) return res.status(409).json({ message: "Este e-mail já está cadastrado." });
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ name, email, passwordHash, sector, role: "operador", active: true });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
+    res.status(201).json({ message: "Conta de operador criada com sucesso.", token, user: publicUser(user) });
+  } catch (err) { next(err); }
+});
 router.get("/me", auth, (req, res) => res.json(publicUser(req.user)));
 module.exports = router;
