@@ -45,7 +45,7 @@ router.post("/forgot-password", async (req, res, next) => {
       user.passwordResetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
       user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000);
       await user.save();
-      const base = process.env.FRONT_URL.replace(/\\/$/, "");
+      const base = process.env.FRONT_URL.replace(/\/$/, "");
       const link = base + "/?reset=" + token;
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465),
