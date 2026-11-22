@@ -66,7 +66,9 @@ router.post("/stock", auth, async (req, res, next) => {
     if (!product) return res.status(404).json({ message: "Produto não encontrado." });
     const before = product.quantity, after = type === "ENTRADA" ? before + amount : before - amount;
     if (after < 0) return res.status(400).json({ message: "Estoque insuficiente para essa saída." });
-    product.quantity = after; await product.save();
+    product.quantity = after;
+    if (type === "SAIDA") product.lastExitDate = new Date();
+    await product.save();
     const movement = await Movement.create({
       action: type, details: reason || (type === "ENTRADA" ? "Entrada de estoque." : "Saída de estoque."),
       productId: product._id, productName: product.name, userId: req.user._id,
