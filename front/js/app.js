@@ -10,7 +10,7 @@ async function api(path, options={}) {
   return data;
 }
 function showLoggedIn(user) {
-  currentUser=user; $("login").hidden=true; $("app").hidden=false;
+  currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("app").hidden=false;
   $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=user.role!=="admin";
   loadProducts();
   if(user.role==="operador") $("deliveryForm").hidden=true;
@@ -20,7 +20,7 @@ $("loginForm").addEventListener("submit",async e=>{e.preventDefault();try{const 
 $("showRegister").addEventListener("click",()=>{$("login").hidden=true;$("registerScreen").hidden=false;});
 $("backToLogin").addEventListener("click",()=>{$("registerScreen").hidden=true;$("login").hidden=false;});
 $("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
-$("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("login").hidden=false;});
+$("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("registerScreen").hidden=true;$("login").hidden=false;});
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.hidden=x.id!==b.dataset.tab);
   document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("active",x===b));
