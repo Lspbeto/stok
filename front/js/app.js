@@ -16,6 +16,7 @@ function showLoggedIn(user) {
   if(user.role==="operador") $("deliveryForm").hidden=true;
 }
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/login",{method:"POST",body:JSON.stringify({email:$("email").value,password:$("password").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);message("Login realizado.");}catch(err){message(err.message,true);}});
+$("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
 $("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("login").hidden=false;});
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.hidden=x.id!==b.dataset.tab);
@@ -71,13 +72,14 @@ async function loadProducts(){try{
  items.forEach(p=>{
   const asset=p.category==="BEM",tr=document.createElement("tr");
   const values=asset
-   ?[p.name,p.patrimonyCode||"—","1",formatDate(p.entryDate),formatDate(p.lastExitDate),p.responsibleSector||"—",p.condition||"—"]
+   ?[p.name,p.patrimonyCode||"—","1",formatDate(p.entryDate),formatDate(p.lastExitDate),formatDate(p.lastSectorExitDate),p.responsibleSector||"—",p.condition||"—"]
    :[p.name,p.code||"—",p.quantity??0,p.unit||"un",formatDate(p.entryDate)];
   values.forEach(v=>{const td=document.createElement("td");td.textContent=v??"—";tr.appendChild(td);});
   if(!asset){
    const td=document.createElement("td"),info=expiryInfo(p.expiryDate),tag=document.createElement("span");
    tag.className="expiry-alert expiry-"+info.level;tag.textContent=info.text;td.appendChild(tag);tr.appendChild(td);
    const exit=document.createElement("td");exit.textContent=formatDate(p.lastExitDate);tr.appendChild(exit);
+   const sectorExit=document.createElement("td");sectorExit.textContent=formatDate(p.lastSectorExitDate);tr.appendChild(sectorExit);
    const sector=document.createElement("td");sector.textContent=p.responsibleSector||"—";tr.appendChild(sector);
    const obs=document.createElement("td");obs.textContent=p.description||"—";tr.appendChild(obs);
   }
