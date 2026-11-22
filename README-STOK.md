@@ -22,6 +22,7 @@ Configure o SMTP no mesmo `.env` para envio de relatório:
 - `SMTP_USER`: conta de e-mail remetente
 - `SMTP_PASS`: senha de aplicativo/token SMTP, nunca a senha normal da conta
 - `SMTP_FROM`: nome e endereço que aparecerão como remetente
+- `FRONT_URL`: endereço completo do front que o usuário abrirá pelo link de recuperação (ex.: `http://localhost:5500` no Live Server; na produção, URL pública do site).
 
 Instale dependências (incluindo o envio de e-mail), crie o administrador se ainda não existir e inicie a API:
 
@@ -43,6 +44,8 @@ Em outro terminal, abra a pasta principal e inicie o front com Live Server no VS
 - Aba Desfazimento: reverte entrada/saída, exige motivo, mantém a operação original e cria registro de reversão. Admin pode desfazer movimentações de todos; operador somente as próprias. Não é possível desfazer a mesma operação duas vezes.
 - Histórico com filtros de data e impressão/salvar em PDF.
 - Envio manual do histórico por e-mail como arquivo CSV. Administrador recebe todo o histórico; operador recebe apenas as próprias movimentações.
+- Recuperação de senha por link de uso único enviado por e-mail, com validade de 30 minutos. Requer SMTP e FRONT_URL configurados.
+- Backup integral do banco em JSON Extended (preserva datas e identificadores) e restauração do arquivo, disponíveis somente para administrador. A restauração substitui os dados atuais; faça backup antes.
 - Usuários com perfis admin e operador; cada operador deve ser vinculado a um setor (ex.: Cozinha, Limpeza, Padaria ou Atendimento).
 - Mercadorias e bens permanentes cadastrados separadamente. Para cada bem, cadastre uma unidade por número de patrimônio, informe conservação e setor responsável.
 - Entrega de mercadorias do estoque para um setor: o saldo do estoque é reduzido no momento da entrega.
@@ -70,7 +73,7 @@ git push origin reorganizacao-back-front
 - Build Command: `npm install`
 - Start Command: `npm start`
 - Cadastre no painel Environment as variáveis do `.env`, incluindo `MONGODB_URI`, `JWT_SECRET`, SMTP e `FRONT_ORIGIN`.
-- Não envie o arquivo `.env` ao GitHub.
+- Não envie o arquivo `.env` ao GitHub. Após atualizar o projeto, execute `npm install` novamente para instalar a dependência BSON usada no backup.
 
 Depois, atualize `front/js/config.js` para o endereço público da API, por exemplo `https://SEU-SERVICO.onrender.com/api`.
 
