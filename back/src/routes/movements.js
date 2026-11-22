@@ -1,39 +1,72 @@
-// Histórico, entradas, saídas e desfazimento de movimentações.
+// Histórico, entradas, saídas, desfazimento e envio de relatório por e-mail.
 const router = require("express").Router();
 const mongoose = require("mongoose");
+const nodemailer = require("nodemailer");
 const Movement = require("../models/Movement");
 const Product = require("../models/Product");
-const { auth, adminOnly } = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 
+function dateFilter(query) {
+  const filter = {};
+  if (query.from || query.to) {
+    filter.createdAt = {};
+    if (query.from) filter.createdAt.$gte = new Date(query.from + "T00:00:00.000Z");
+    if (query.to) filter.createdAt.$lte = new Date(query.to + "T23:59:59.999Z");
+  }
+  return filter;
+}
 router.get("/", auth, async (req, res, next) => {
   try {
-    const filter = {};
+    const filter = dateFilter(req.query);
     if (req.user.role !== "admin") filter.userId = req.user._id;
-    if (req.query.from || req.query.to) {
-      filter.createdAt = {};
-      if (req.query.from) filter.createdAt.$gte = new Date(req.query.from + "T00:00:00.000Z");
-      if (req.query.to) filter.createdAt.$lte = new Date(req.query.to + "T23:59:59.999Z");
-    }
-    const items = await Movement.find(filter).sort({ createdAt: -1 }).limit(1000);
-    res.json(items);
+    res.json(await Movement.find(filter).sort({ createdAt: -1 }).limit(1000));
   } catch (e) { next(e); }
 });
 
-// Registra entrada ou saída e guarda o saldo anterior e o novo saldo.
+// Envia por SMTP o mesmo histórico que o usuário tem permissão para consultar.
+router.post("/email-report", auth, async (req, res, next) => {
+  try {
+    const email = String(req.body.email || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Informe um e-mail válido." });
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return res.status(503).json({ message: "Configure SMTP_HOST, SMTP_USER e SMTP_PASS nas variáveis do servidor." });
+    }
+    const filter = dateFilter(req.body);
+    if (req.user.role !== "admin") filter.userId = req.user._id;
+    const items = await Movement.find(filter).sort({ createdAt: -1 }).limit(1000);
+    const lines = items.map(m => [
+      new Date(m.createdAt).toLocaleString("pt-BR"), m.userName, m.role, m.action,
+      m.productName, m.quantity ?? "", m.unit || "", m.details
+    ].map(v => String(v ?? "").replace(/[\r\n;]+/g, " ")).join(";"));
+    const csv = ["Data;Usuário;Perfil;Ação;Produto;Quantidade;Unidade;Detalhes", ...lines].join("\n");
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465),
+      secure: String(process.env.SMTP_SECURE || "true") === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER, to: email,
+      subject: "STOK - Relatório de movimentações",
+      text: "Segue em anexo o relatório de movimentações do estoque.",
+      attachments: [{ filename: "relatorio-movimentacoes.csv", content: "\uFEFF" + csv, contentType: "text/csv; charset=utf-8" }]
+    });
+    res.json({ message: "Relatório enviado para " + email + "." });
+  } catch (e) { next(e); }
+});
+
+// Registra entrada ou saída e guarda saldo anterior e novo saldo.
 router.post("/stock", auth, async (req, res, next) => {
   try {
     const { productId, type, quantity, reason } = req.body;
     const amount = Number(quantity);
     if (!mongoose.isValidObjectId(productId)) return res.status(400).json({ message: "Produto inválido." });
     if (!["ENTRADA", "SAIDA"].includes(type)) return res.status(400).json({ message: "Tipo deve ser ENTRADA ou SAIDA." });
-    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Informe uma quantidade maior que zero." });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Informe quantidade maior que zero." });
     const product = await Product.findOne({ _id: productId, active: true });
     if (!product) return res.status(404).json({ message: "Produto não encontrado." });
-    const before = product.quantity;
-    const after = type === "ENTRADA" ? before + amount : before - amount;
+    const before = product.quantity, after = type === "ENTRADA" ? before + amount : before - amount;
     if (after < 0) return res.status(400).json({ message: "Estoque insuficiente para essa saída." });
-    product.quantity = after;
-    await product.save();
+    product.quantity = after; await product.save();
     const movement = await Movement.create({
       action: type, details: reason || (type === "ENTRADA" ? "Entrada de estoque." : "Saída de estoque."),
       productId: product._id, productName: product.name, userId: req.user._id,
@@ -44,7 +77,7 @@ router.post("/stock", auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Desfaz uma entrada/saída criando um movimento inverso. Nunca apaga o histórico original.
+// Reverte entrada/saída com registro inverso. Nunca remove o histórico original.
 router.post("/:id/undo", auth, async (req, res, next) => {
   try {
     const original = await Movement.findById(req.params.id);
@@ -53,21 +86,17 @@ router.post("/:id/undo", auth, async (req, res, next) => {
     if (req.user.role !== "admin" && String(original.userId) !== String(req.user._id)) return res.status(403).json({ message: "Você só pode desfazer suas próprias movimentações." });
     const product = await Product.findOne({ _id: original.productId, active: true });
     if (!product) return res.status(404).json({ message: "Produto não encontrado ou inativo." });
-    const before = product.quantity;
-    const after = original.action === "ENTRADA" ? before - original.quantity : before + original.quantity;
+    const before = product.quantity, after = original.action === "ENTRADA" ? before - original.quantity : before + original.quantity;
     if (after < 0) return res.status(409).json({ message: "Não é possível desfazer: o estoque atual não permite essa reversão." });
-    product.quantity = after;
-    await product.save();
+    product.quantity = after; await product.save();
     const reversal = await Movement.create({
-      action: "DESFAZIMENTO", details: req.body.reason || ("Desfazimento da movimentação " + original._id),
+      action: "DESFAZIMENTO", details: (req.body.reason || "Desfazimento") + " (movimentação " + original._id + ")",
       productId: product._id, productName: product.name, userId: req.user._id,
       userName: req.user.name, role: req.user.role, quantity: original.quantity,
       beforeQuantity: before, afterQuantity: after, unit: product.unit, undoOf: original._id
     });
-    original.undoneAt = new Date();
-    original.undoneBy = req.user._id;
-    original.undoneByName = req.user.name;
-    original.undoMovementId = reversal._id;
+    original.undoneAt = new Date(); original.undoneBy = req.user._id;
+    original.undoneByName = req.user.name; original.undoMovementId = reversal._id;
     await original.save();
     res.json({ message: "Movimentação desfeita e registrada no histórico.", product, movement: reversal });
   } catch (e) { next(e); }
