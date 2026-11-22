@@ -83,3 +83,37 @@
 @media(max-width:680px){
   #products .table-wrap table{min-width:1050px}
 }
+
+
+/* Mantém a coluna Ações visível mesmo quando a tabela rola para os lados. */
+#products .table-wrap table{border-collapse:separate;border-spacing:0}
+#products .table-wrap th:last-child,
+#products .table-wrap td:last-child{
+  position:sticky;
+  right:0;
+  z-index:2;
+  min-width:190px;
+  width:190px;
+  background:#fff;
+  box-shadow:-8px 0 12px -10px rgba(20,35,60,.55);
+}
+#products .table-wrap th:last-child{
+  z-index:3;
+  background:#f3f6fb;
+}
+#products .table-wrap tbody tr:hover td:last-child{background:#f6f9ff}
+#products .table-wrap td:last-child{
+  white-space:normal;
+  vertical-align:middle;
+}
+#products .table-wrap td:last-child button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  min-height:36px;
+  margin:3px;
+}
+#products .table-wrap::-webkit-scrollbar{height:12px}
+#products .table-wrap::-webkit-scrollbar-thumb{background:#9aaac2;border-radius:10px}
+#products .table-wrap::-webkit-scrollbar-track{background:#edf1f7;border-radius:10px}
