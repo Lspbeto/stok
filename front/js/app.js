@@ -24,9 +24,44 @@ document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()
   if(b.dataset.tab==="products")loadProducts();
   if(b.dataset.tab==="deliveries")loadDeliveries();
 }));
-$("productForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/products",{method:"POST",body:JSON.stringify({name:$("productName").value,code:$("productCode").value,quantity:Number($("quantity").value),minimum:Number($("minimum").value),unit:$("unit").value,expiryDate:$("expiryDate").value||null,description:$("description").value,category:$("productCategory").value,patrimonyCode:$("patrimonyCode").value,condition:$("condition").value,responsibleSector:$("responsibleSector").value})});e.target.reset();$("quantity").value=0;$("minimum").value=0;await loadProducts();message("Produto cadastrado.");}catch(err){message(err.message,true);}});
-function expiryLabel(date){if(!date)return "Não informada";const today=new Date();today.setHours(0,0,0,0);const d=new Date(String(date).slice(0,10)+"T00:00:00");const days=Math.ceil((d-today)/86400000);if(days<0)return "VENCIDO";if(days<=30)return "Vence em "+days+" dia(s)";return d.toLocaleDateString("pt-BR");}
-async function loadProducts(){try{const items=await api("/products");$("productsBody").replaceChildren();items.forEach(p=>{const tr=document.createElement("tr");[p.name+" ("+(p.category||"MERCADORIA")+")",p.code,(p.quantity??0)+" "+(p.unit||"un"),p.minimum,expiryLabel(p.expiryDate)].forEach(v=>{const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});const td=document.createElement("td");(p.category==="BEM"?[]:["ENTRADA","SAIDA"]).forEach(type=>{const b=document.createElement("button");b.textContent=type==="ENTRADA"?"Entrada +":"Saída −";b.className=type==="SAIDA"?"secondary":"";b.style.margin="2px";b.addEventListener("click",()=>stockMove(p,type));td.appendChild(b);});if(p.category==="BEM"&&currentUser.role==="admin"){const transfer=document.createElement("button");transfer.textContent="Transferir setor";transfer.style.margin="2px";transfer.addEventListener("click",async()=>{const sector=prompt("Novo setor responsável pelo bem "+p.name+":",p.responsibleSector||"");if(!sector)return;try{const d=await api("/products/"+p._id+"/transfer",{method:"POST",body:JSON.stringify({sector})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});td.appendChild(transfer);}const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.style.margin="2px";del.addEventListener("click",async()=>{if(!confirm("Deseja desativar "+p.name+"?"))return;try{await api("/products/"+p._id,{method:"DELETE"});loadProducts();message("Produto desativado.");}catch(err){message(err.message,true);}});td.appendChild(del);tr.appendChild(td);$("productsBody").appendChild(tr);});}catch(err){message(err.message,true);}}
+function formatDate(value){if(!value)return "—";const d=new Date(String(value).slice(0,10)+"T00:00:00");return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("pt-BR");}
+function toggleProductFields(){const asset=$("productCategory").value==="BEM";$("goodsFields").hidden=asset;$("assetFields").hidden=!asset;}
+$("productCategory").addEventListener("change",toggleProductFields);
+toggleProductFields();
+$("productForm").addEventListener("submit",async e=>{e.preventDefault();try{
+ const asset=$("productCategory").value==="BEM";
+ const payload={name:$("productName").value,category:asset?"BEM":"MERCADORIA",quantity:asset?1:Number($("quantity").value),minimum:0,unit:asset?"un":$("unit").value,entryDate:(asset?$("assetEntryDate").value:$("entryDate").value)||new Date().toISOString().slice(0,10),expiryDate:asset?null:($("expiryDate").value||null),code:asset?"":$("productCode").value,description:asset?$("condition").value:$("description").value,patrimonyCode:asset?$("patrimonyCode").value:"",condition:asset?$("condition").value:"",responsibleSector:asset?$("responsibleSector").value:$("goodsSector").value};
+ await api("/products",{method:"POST",body:JSON.stringify(payload)});
+ e.target.reset();$("quantity").value=0;toggleProductFields();await loadProducts();message("Item cadastrado.");
+ }catch(err){message(err.message,true);}});
+function expiryInfo(date){
+ if(!date)return {text:"Não informada",level:"neutral"};
+ const today=new Date();today.setHours(0,0,0,0);
+ const d=new Date(String(date).slice(0,10)+"T00:00:00");
+ const days=Math.ceil((d-today)/86400000);
+ if(days<0)return {text:"VENCIDO há "+Math.abs(days)+" dia(s)",level:"expired"};
+ if(days===0)return {text:"VENCE HOJE",level:"expired"};
+ if(days<=30)return {text:"ATENÇÃO: vence em "+days+" dia(s)",level:"soon"};
+ return {text:d.toLocaleDateString("pt-BR"),level:"ok"};
+}
+async function loadProducts(){try{
+ const items=await api("/products");$("goodsBody").replaceChildren();$("assetsBody").replaceChildren();
+ items.forEach(p=>{
+  const asset=p.category==="BEM",tr=document.createElement("tr");
+  const values=asset?[p.name,p.patrimonyCode||"—","1",formatDate(p.entryDate),formatDate(p.lastExitDate),p.responsibleSector||"—"]:[p.name,p.code||"—",p.quantity??0,p.unit||"un",formatDate(p.entryDate)];
+  values.forEach(v=>{const td=document.createElement("td");td.textContent=v??"—";tr.appendChild(td);});
+  if(!asset){const td=document.createElement("td"),info=expiryInfo(p.expiryDate),tag=document.createElement("span");tag.className="expiry-alert expiry-"+info.level;tag.textContent=info.text;td.appendChild(tag);tr.appendChild(td);
+   const exit=document.createElement("td");exit.textContent=formatDate(p.lastExitDate);tr.appendChild(exit);
+   const sector=document.createElement("td");sector.textContent=p.responsibleSector||"—";tr.appendChild(sector);
+   const obs=document.createElement("td");obs.textContent=p.description||"—";tr.appendChild(obs);
+  }
+  const actions=document.createElement("td");
+  if(!asset){["ENTRADA","SAIDA"].forEach(type=>{const b=document.createElement("button");b.textContent=type==="ENTRADA"?"Entrada +":"Saída −";b.className=type==="SAIDA"?"secondary":"";b.style.margin="2px";b.addEventListener("click",()=>stockMove(p,type));actions.appendChild(b);});}
+  if(asset&&currentUser.role==="admin"){const transfer=document.createElement("button");transfer.textContent="Transferir setor";transfer.style.margin="2px";transfer.addEventListener("click",async()=>{const sector=prompt("Novo setor responsável pelo bem "+p.name+":",p.responsibleSector||"");if(!sector)return;try{const d=await api("/products/"+p._id+"/transfer",{method:"POST",body:JSON.stringify({sector})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});actions.appendChild(transfer);}
+  const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.style.margin="2px";del.addEventListener("click",async()=>{if(!confirm("Deseja desativar "+p.name+"?"))return;try{await api("/products/"+p._id,{method:"DELETE"});loadProducts();message("Item desativado.");}catch(err){message(err.message,true);}});actions.appendChild(del);tr.appendChild(actions);
+  (asset?$("assetsBody"):$("goodsBody")).appendChild(tr);
+ });
+ }catch(err){message(err.message,true);}}
 async function stockMove(p,type){const raw=prompt("Quantidade para "+(type==="ENTRADA"?"entrada":"saída")+" de "+p.name+" ("+(p.unit||"un")+"):");if(raw===null)return;const quantity=Number(raw);if(!Number.isFinite(quantity)||quantity<=0){message("Digite uma quantidade maior que zero.",true);return;}const reason=prompt("Motivo / observação (opcional):")||"";try{await api("/movements/stock",{method:"POST",body:JSON.stringify({productId:p._id,type,quantity,reason})});await loadProducts();message("Movimentação registrada.");}catch(err){message(err.message,true);}}
 function dateParams(){const p=new URLSearchParams();if($("fromDate").value)p.set("from",$("fromDate").value);if($("toDate").value)p.set("to",$("toDate").value);return p.toString();}
 $("filterHistory").addEventListener("click",loadHistory);
