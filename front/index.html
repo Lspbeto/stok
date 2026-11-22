@@ -3,8 +3,8 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>STOK - Controle de Estoque</title><link rel="stylesheet" href="css/style.css"></head>
 <body><main class="container">
 <header class="brand"><h1 class="brand-mark" tabindex="0">STOK<span>.</span></h1><p>Gestão de estoque, entregas e patrimônio</p></header>
-<section id="login" class="login-card"><div class="login-symbol">S</div><h2>Bem-vindo ao STOK</h2><p class="muted">Acesse sua conta para continuar</p><form id="loginForm"><label>E-mail<input id="email" type="email" required autocomplete="username"></label><label>Senha<input id="password" type="password" required autocomplete="current-password"></label><button class="login-submit">Entrar no sistema <span>→</span></button></form>
-<details class="signup-box"><summary>Não tem acesso? Criar conta de operador</summary><form id="registerForm"><label>Nome completo<input id="registerName" required autocomplete="name"></label><label>E-mail<input id="registerEmail" type="email" required autocomplete="email"></label><label>Senha (mínimo 8 caracteres)<input id="registerPassword" type="password" minlength="8" required autocomplete="new-password"></label><label>Setor onde trabalha<input id="registerSector" required placeholder="Ex.: Cozinha, Limpeza, Padaria"></label><button type="submit">Criar conta de operador</button></form><p class="login-note">Por segurança, o cadastro pela tela de login cria somente perfil de operador.</p></details><p class="login-note">Ambiente de gestão seguro</p></section>
+<section id="login" class="login-card"><div class="login-symbol">S</div><h2>Bem-vindo ao STOK</h2><p class="muted">Acesse sua conta para continuar</p><form id="loginForm"><label>E-mail<input id="email" type="email" required autocomplete="username"></label><label>Senha<input id="password" type="password" required autocomplete="current-password"></label><button class="login-submit">Entrar no sistema <span>→</span></button></form><button type="button" id="showRegister" class="register-link">Não tem acesso? Criar conta</button><p class="login-note">Ambiente de gestão seguro</p></section>
+<section id="registerScreen" class="login-card" hidden><div class="login-symbol">S</div><h2>Criar conta</h2><p class="muted">Preencha seus dados para solicitar acesso ao STOK</p><form id="registerForm"><label>Nome completo<input id="registerName" required autocomplete="name"></label><label>E-mail<input id="registerEmail" type="email" required autocomplete="email"></label><label>Senha (mínimo 8 caracteres)<input id="registerPassword" type="password" minlength="8" required autocomplete="new-password"></label><label>Setor onde trabalha<input id="registerSector" required placeholder="Ex.: Cozinha, Limpeza, Padaria"></label><button type="submit" class="login-submit">Criar conta <span>→</span></button></form><button type="button" id="backToLogin" class="register-link">← Voltar para entrar</button><p class="login-note">A conta criada por esta tela terá acesso de operador.</p></section>
 <section id="app" hidden>
 <div class="toolbar"><span id="welcome"></span><button id="logout" class="secondary">Sair</button></div>
 <nav class="main-nav"><button class="tab-button active" data-tab="products">Estoque / Produtos</button><button class="tab-button" data-tab="deliveries">Entregas / Prestação de contas</button><button class="tab-button" data-tab="users" id="usersTab" hidden>Usuários</button><button class="tab-button" data-tab="history">Histórico e relatórios</button></nav>
@@ -14,22 +14,16 @@
 <label>Tipo de item<select id="productCategory"><option value="MERCADORIA">Mercadoria / consumo</option><option value="BEM">Bem durável / permanente</option></select></label>
 
 <div id="goodsFields" class="product-fields-card goods-card">
-<input id="productCode" placeholder="Código / código de barras">
-<input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade inicial" value="0">
-<label>Unidade de medida<select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select></label>
-<label>Data de entrada<input id="entryDate" type="date"></label>
-<label>Validade<input id="expiryDate" type="date"></label>
-
-<input id="goodsSector" placeholder="Setor responsável">
-<input id="description" placeholder="Observações">
+<label>Código / código de barras<input id="productCode" placeholder="Código do produto"></label>
+<div class="product-field-row"><label>Quantidade inicial<input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade" value="0"></label>
+<label>Unidade de medida<select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select></label></div>
+<div class="product-field-row three"><label>Data de entrada<input id="entryDate" type="date"></label><label>Validade<input id="expiryDate" type="date"></label><label>Data de saída (quando houver)<input id="goodsExitDate" type="date" disabled></label></div>
+<label>Setor responsável<input id="goodsSector" placeholder="Setor responsável"></label><label>Observações<input id="description" placeholder="Observações"></label>
 </div>
 <div id="assetFields" class="product-fields-card asset-card" hidden>
-<input id="patrimonyCode" placeholder="Nº de patrimônio">
-<label>Quantidade<input id="assetQuantity" value="1" readonly aria-label="Quantidade fixa: 1"></label>
-<label>Data de entrada<input id="assetEntryDate" type="date"></label>
-
-<input id="responsibleSector" placeholder="Setor responsável">
-<input id="condition" placeholder="Estado de conservação">
+<label>Nº de patrimônio<input id="patrimonyCode" placeholder="Número de patrimônio"></label>
+<div class="product-field-row three"><label>Quantidade<input id="assetQuantity" value="1" readonly aria-label="Quantidade fixa: 1"></label><label>Data de entrada<input id="assetEntryDate" type="date"></label><label>Data de saída (quando houver)<input id="assetExitDate" type="date" disabled></label></div>
+<label>Setor responsável<input id="responsibleSector" placeholder="Setor responsável"></label><label>Estado de conservação<input id="condition" placeholder="Estado de conservação"></label>
 </div>
 <button type="submit">Cadastrar item</button></form>
 <h3>Mercadorias / consumo</h3><div class="table-wrap"><table><thead><tr><th>Produto</th><th>Código</th><th>Quantidade</th><th>Unidade</th><th>Entrada</th><th>Validade / alerta</th><th>Saída do estoque</th><th>Saída do setor</th><th>Setor responsável</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="goodsBody"></tbody></table></div>
