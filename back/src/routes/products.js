@@ -16,8 +16,9 @@ router.post("/", async (req, res, next) => {
     if (!name) return res.status(400).json({ message: "O nome do item é obrigatório." });
     const type = category === "BEM" ? "BEM" : "MERCADORIA";
     if (type === "BEM" && !String(patrimonyCode || "").trim()) return res.status(400).json({ message: "Informe o número de patrimônio do bem." });
-    if (type === "BEM" && Number(quantity || 1) !== 1) return res.status(400).json({ message: "Cadastre cada bem patrimonial individualmente, com quantidade 1." });
-    const product = await Product.create({ name, code, description, category: type, patrimonyCode, condition, responsibleSector: String(responsibleSector || "").trim(), quantity: Number(quantity || 0), minimum: Number(minimum || 0), unit: unit || "un", expiryDate: expiryDate || null });
+    if (type === "BEM" && !String(responsibleSector || "").trim()) return res.status(400).json({ message: "Informe o setor responsável pelo bem." });
+    if (type === "BEM" && await Product.exists({ patrimonyCode: String(patrimonyCode).trim(), active: true })) return res.status(409).json({ message: "Este número de patrimônio já está cadastrado." });
+    const product = await Product.create({ name, code, description, category: type, patrimonyCode, condition, responsibleSector: String(responsibleSector || "").trim(), quantity: type === "BEM" ? 1 : Number(quantity || 0), minimum: Number(minimum || 0), unit: unit || "un", expiryDate: expiryDate || null });
     await log(req, "PRODUTO_CRIADO", product, "Item cadastrado: " + type + ".");
     res.status(201).json(product);
   } catch (e) { next(e); }
