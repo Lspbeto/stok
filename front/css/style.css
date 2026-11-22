@@ -36,3 +36,50 @@
 .product-field-row input,.product-field-row select{width:100%;min-width:0}
 .goods-card,.asset-card{display:flex;flex-direction:column;gap:14px}
 @media(max-width:720px){.product-field-row,.product-field-row.three{grid-template-columns:1fr}}
+
+
+/* Listagem de produtos: não deixa a tabela cortar o conteúdo do painel. */
+#products{min-width:0;max-width:100%;overflow:visible}
+#products .table-wrap{
+  display:block;
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#9aaac2 #edf1f7;
+}
+#products .table-wrap table{
+  width:max-content;
+  min-width:100%;
+  table-layout:auto;
+}
+#products .table-wrap th,
+#products .table-wrap td{
+  white-space:nowrap;
+  vertical-align:middle;
+}
+#products .table-wrap td:last-child{
+  min-width:150px;
+}
+#products .table-wrap td:last-child button{
+  margin:3px;
+}
+#products .table-wrap td:nth-last-child(2){
+  white-space:normal;
+  min-width:140px;
+  max-width:260px;
+  overflow-wrap:anywhere;
+}
+#products h3{margin:24px 0 10px}
+#products .table-wrap:focus-within{outline:2px solid #4775e8;outline-offset:2px}
+@media(max-width:900px){
+  #products .table-wrap{margin-right:0}
+  #products .table-wrap table{min-width:1050px}
+  #products .table-wrap th,#products .table-wrap td{padding:10px}
+}
+@media(max-width:680px){
+  #products .table-wrap table{min-width:1050px}
+}
