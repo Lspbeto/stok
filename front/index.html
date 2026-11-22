@@ -7,25 +7,26 @@
 <section id="app" hidden>
 <div class="toolbar"><span id="welcome"></span><button id="logout" class="secondary">Sair</button></div>
 <nav class="main-nav"><button class="tab-button active" data-tab="products">Estoque / Produtos</button><button class="tab-button" data-tab="deliveries">Entregas / Prestação de contas</button><button class="tab-button" data-tab="users" id="usersTab" hidden>Usuários</button><button class="tab-button" data-tab="history">Histórico e relatórios</button></nav>
-<section id="products" class="panel tab"><h2>Cadastro de produtos do mercadinho</h2>
+<section id="products" class="panel tab"><h2>Cadastro de produtos e bens</h2>
 <form id="productForm" class="form-grid">
+<label>Nome do produto / bem<input id="productName" placeholder="Digite primeiro o nome do produto ou bem" required></label>
 <label>Tipo de item<select id="productCategory"><option value="MERCADORIA">Mercadoria / consumo</option><option value="BEM">Bem durável / permanente</option></select></label>
-<label>Nome do item<input id="productName" placeholder="Nome do produto ou bem" required></label>
+
 <div id="goodsFields" class="form-grid">
 <input id="productCode" placeholder="Código / código de barras">
 <input id="quantity" type="number" min="0" step="0.001" placeholder="Quantidade inicial" value="0">
 <label>Unidade de medida<select id="unit"><option value="un">Unidade (un)</option><option value="kg">Quilograma (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="ml">Mililitro (ml)</option><option value="pct">Pacote (pct)</option><option value="cx">Caixa (cx)</option><option value="dz">Dúzia (dz)</option><option value="fardo">Fardo</option></select></label>
 <label>Data de entrada<input id="entryDate" type="date"></label>
 <label>Validade<input id="expiryDate" type="date"></label>
-<label>Data de saída (preenchida nas movimentações)<input id="goodsExitDate" type="date" disabled></label>
+
 <input id="goodsSector" placeholder="Setor responsável">
 <input id="description" placeholder="Observações">
 </div>
 <div id="assetFields" class="form-grid" hidden>
 <input id="patrimonyCode" placeholder="Nº de patrimônio">
-<input id="assetQuantity" value="1" readonly aria-label="Quantidade fixa: 1">
+<label>Quantidade<input id="assetQuantity" value="1" readonly aria-label="Quantidade fixa: 1"></label>
 <label>Data de entrada<input id="assetEntryDate" type="date"></label>
-<label>Data de saída (se houver)<input id="assetExitDate" type="date"></label>
+
 <input id="responsibleSector" placeholder="Setor responsável">
 <input id="condition" placeholder="Estado de conservação">
 </div>
