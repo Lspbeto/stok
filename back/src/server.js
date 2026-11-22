@@ -8,6 +8,7 @@ const userRoutes = require("./routes/users");
 const productRoutes = require("./routes/products");
 const movementRoutes = require("./routes/movements");
 const deliveryRoutes = require("./routes/deliveries");
+const databaseRoutes = require("./routes/database");
 const app = express();
 app.use(cors({ origin: process.env.FRONT_ORIGIN ? process.env.FRONT_ORIGIN.split(",") : true }));
 app.use(express.json({ limit: "25mb" }));
@@ -17,6 +18,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/movements", movementRoutes);
 app.use("/api/deliveries", deliveryRoutes);
+app.use("/api/database", databaseRoutes);
 app.use((err, _req, res, _next) => { console.error(err); res.status(err.status || 500).json({ message: err.message || "Erro interno do servidor." }); });
 const PORT = process.env.PORT || 3000;
 mongoose.connect(process.env.MONGODB_URI)
