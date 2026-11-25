@@ -19,7 +19,7 @@ router.post("/", async (req, res, next) => {
     if (type === "BEM" && !String(responsibleSector || "").trim()) return res.status(400).json({ message: "Informe o setor responsável pelo bem." });
     if (type === "BEM" && await Product.exists({ patrimonyCode: String(patrimonyCode).trim(), active: true })) return res.status(409).json({ message: "Este número de patrimônio já está cadastrado." });
     const normalizedCode = String(code || "").trim();
-    const product = await Product.create({ name, code: normalizedCode, isFictional: String(normalizedCode).startsWith("0.0").test(normalizedCode), description, category: type, patrimonyCode, condition, responsibleSector: String(responsibleSector || "").trim(), entryDate: entryDate || new Date(), quantity: type === "BEM" ? 1 : Number(quantity || 0), minimum: Number(minimum || 0), unit: unit || "un", expiryDate: expiryDate || null });
+    const product = await Product.create({ name, code: normalizedCode, isFictional: normalizedCode.startsWith("0.0"), description, category: type, patrimonyCode, condition, responsibleSector: String(responsibleSector || "").trim(), entryDate: entryDate || new Date(), quantity: type === "BEM" ? 1 : Number(quantity || 0), minimum: Number(minimum || 0), unit: unit || "un", expiryDate: expiryDate || null });
     await log(req, "PRODUTO_CRIADO", product, "Item cadastrado: " + type + ".");
     res.status(201).json(product);
   } catch (e) { next(e); }
