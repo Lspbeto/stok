@@ -11,7 +11,7 @@ async function api(path, options={}) {
 }
 function showLoggedIn(user) {
   currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("app").hidden=false;
-  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
+  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("historyCompanyWrap").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
   $("productForm").hidden=!["adm_geral","adm_empresa"].includes(user.role);
   if(["adm_geral","adm_empresa"].includes(user.role)) loadCompanies();
@@ -112,7 +112,7 @@ async function loadProducts(){try{
  });
  }catch(err){message(err.message,true);}}
 async function stockMove(p,type){const raw=prompt("Quantidade para "+(type==="ENTRADA"?"entrada":"saída")+" de "+p.name+" ("+(p.unit||"un")+"):");if(raw===null)return;const quantity=Number(raw);if(!Number.isFinite(quantity)||quantity<=0){message("Digite uma quantidade maior que zero.",true);return;}const reason=prompt("Motivo / observação (opcional):")||"";try{await api("/movements/stock",{method:"POST",body:JSON.stringify({productId:p._id,type,quantity,reason})});await loadProducts();message("Movimentação registrada.");}catch(err){message(err.message,true);}}
-function dateParams(){const p=new URLSearchParams();if($("fromDate").value)p.set("from",$("fromDate").value);if($("toDate").value)p.set("to",$("toDate").value);return p.toString();}
+function dateParams(){const p=new URLSearchParams();if(currentUser?.role==="adm_geral"&&$("historyCompany").value)p.set("companyId",$("historyCompany").value);if($("fromDate").value)p.set("from",$("fromDate").value);if($("toDate").value)p.set("to",$("toDate").value);return p.toString();}
 $("filterHistory").addEventListener("click",loadHistory);
 $("historySearch").addEventListener("input",renderHistory);
 async function loadHistory(){try{[cachedMovements,cachedProducts]=await Promise.all([api("/movements?"+dateParams()),api("/products")]);renderHistory();}catch(err){message(err.message,true);}}
@@ -141,7 +141,7 @@ function renderHistory(){
  }
 }
 $("printHistory").addEventListener("click",()=>window.print());
-$("emailForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/movements/email-report",{method:"POST",body:JSON.stringify({email:$("reportEmail").value,from:$("fromDate").value,to:$("toDate").value})});message(d.message);}catch(err){message(err.message,true);}});
+$("emailForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/movements/email-report",{method:"POST",body:JSON.stringify({email:$("reportEmail").value,from:$("fromDate").value,to:$("toDate").value,companyId:currentUser?.role==="adm_geral"?$("historyCompany").value:""})});message(d.message);}catch(err){message(err.message,true);}});
 // Carrega entregas e permite lançar destinos conforme o setor do operador.
 async function loadDeliveries(){
  try{
@@ -225,6 +225,7 @@ $("restoreButton").addEventListener("click",async()=>{
 async function loadCompanies(){
  try{
   const companies=await api("/companies"),body=$("companiesBody");body.replaceChildren();
+  const hc=$("historyCompany");if(hc){const selected=hc.value;hc.replaceChildren();const all=document.createElement("option");all.value="";all.textContent="Todas as empresas";hc.appendChild(all);companies.forEach(c=>{const o=document.createElement("option");o.value=c._id;o.textContent=c.name;hc.appendChild(o);});hc.value=selected;}
   ["productCompany","userCompany"].forEach(id=>{const el=$(id);if(!el)return;const keep=el.value;el.replaceChildren();companies.forEach(c=>{const o=document.createElement("option");o.value=c._id;o.textContent=c.name;el.appendChild(o);});if([...el.options].some(o=>o.value===keep))el.value=keep;});
   companies.forEach(c=>{
    const tr=document.createElement("tr");
