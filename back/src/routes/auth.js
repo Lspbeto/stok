@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
+const Company = require("../models/Company");
 const { auth, roleOf } = require("../middleware/auth");
 function publicUser(user) { return { id: user._id, name: user.name, email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: roleOf(user), sector: user.sector || "" }; }
 router.post("/login", async (req, res, next) => {
@@ -17,7 +18,7 @@ router.post("/login", async (req, res, next) => {
     res.json({ token, user: publicUser(user) });
   } catch (err) { next(err); }
 });
-// Cadastro aberto: cria sempre operador e exige setor de trabalho.
+// Lista apenas nomes de empresas para permitir que o novo operador escolha seu vínculo.\nrouter.get("/companies", async (_req,res,next)=>{try{res.json(await Company.find({active:true}).select("name").sort({name:1}));}catch(e){next(e);}});\n\n// Cadastro aberto: cria sempre operador e exige empresa e setor.
 router.post("/register", async (req, res, next) => {
   try {
     const name = String(req.body.name || "").trim();
@@ -25,13 +26,15 @@ router.post("/register", async (req, res, next) => {
     const password = String(req.body.password || "");
     const sector = String(req.body.sector || "").trim();
     const registrationNumber = String(req.body.registrationNumber || "").trim();
-    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector || !registrationNumber) {
-      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres, setor e número de cadastro." });
+    const companyId = req.body.companyId;
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector || !registrationNumber || !companyId) {
+      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres, empresa, setor e número de cadastro." });
     }
+    if (!await Company.exists({ _id: companyId, active: true })) return res.status(400).json({ message: "Selecione uma empresa válida." });
     if (await User.exists({ email })) return res.status(409).json({ message: "Este e-mail já está cadastrado." });
     if (await User.exists({ registrationNumber })) return res.status(409).json({ message: "Este número de cadastro já está em uso." });
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, passwordHash, registrationNumber, isFictional: registrationNumber.startsWith("0.0"), sector, role: "operador", active: true });
+    const user = await User.create({ name, email, passwordHash, registrationNumber, isFictional: registrationNumber.startsWith("0.0"), companyId, sector, role: "operador", active: true });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
     res.status(201).json({ message: "Conta de operador criada com sucesso.", token, user: publicUser(user) });
   } catch (err) { next(err); }
