@@ -1,4 +1,4 @@
-// Histórico imutável: entregas a setores e prestação de contas ficam vinculadas.
+// Histórico imutável: cada movimento pertence à empresa do item/usuário de origem.
 const mongoose = require("mongoose");
 const allocationSchema = new mongoose.Schema({
   type: { type: String, required: true },
@@ -7,6 +7,7 @@ const allocationSchema = new mongoose.Schema({
   targetSector: { type: String, default: "" }
 }, { _id: false });
 const schema = new mongoose.Schema({
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company", default: null, index: true },
   action: { type: String, required: true },
   details: { type: String, default: "" },
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
