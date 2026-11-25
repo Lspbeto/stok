@@ -1,6 +1,6 @@
 // Interface do STOK: estoque, entregas, usuários, histórico e relatórios.
 const API = window.STOK_CONFIG.API_URL.replace(/\/$/, "");
-let token = localStorage.getItem("stok_token"), currentUser = null, cachedMovements = [];
+let token = localStorage.getItem("stok_token"), currentUser = null, cachedMovements = [], cachedProducts = [];
 const $ = id => document.getElementById(id);
 function message(text, error=false) { $("message").textContent=text; $("message").style.color=error?"#b42318":"#167044"; }
 async function api(path, options={}) {
@@ -110,12 +110,30 @@ async function stockMove(p,type){const raw=prompt("Quantidade para "+(type==="EN
 function dateParams(){const p=new URLSearchParams();if($("fromDate").value)p.set("from",$("fromDate").value);if($("toDate").value)p.set("to",$("toDate").value);return p.toString();}
 $("filterHistory").addEventListener("click",loadHistory);
 $("historySearch").addEventListener("input",renderHistory);
-async function loadHistory(){try{cachedMovements=await api("/movements?"+dateParams());renderHistory();}catch(err){message(err.message,true);}}
+async function loadHistory(){try{[cachedMovements,cachedProducts]=await Promise.all([api("/movements?"+dateParams()),api("/products")]);renderHistory();}catch(err){message(err.message,true);}}
+const DESTINATION_LABELS={DEVOLUCAO:"Devolvido ao estoque",CONSUMO:"Consumido",EXTRAVIO:"Extraviado",DOACAO:"Doado",VENDA:"Vendido",TRANSFERENCIA:"Transferido",OUTRO:"Outro destino"};
 function renderHistory(){
  const term=($("historySearch").value||"").trim().toLocaleLowerCase("pt-BR");
- const rows=cachedMovements.filter(m=>[m.userName,m.role,m.action,m.productName,m.details,m.sector,m.destination].join(" ").toLocaleLowerCase("pt-BR").includes(term));
+ const rows=cachedMovements.filter(m=>[m.userName,m.role,m.action,m.productName,m.details,m.sector,m.destination,...(m.allocations||[]).flatMap(a=>[a.note,a.targetSector,a.type])].join(" ").toLocaleLowerCase("pt-BR").includes(term));
  $("historyBody").replaceChildren();
- rows.forEach(m=>{const tr=document.createElement("tr");[new Date(m.createdAt).toLocaleString("pt-BR"),m.userName,m.role,m.action,m.productName,(m.quantity??"")+(m.unit?" "+m.unit:""),m.details].forEach(v=>{const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});$("historyBody").appendChild(tr);});
+ rows.forEach(m=>{
+  const allocation=(m.allocations||[])[0]||{};
+  const destination=DESTINATION_LABELS[allocation.type||m.destination]||allocation.type||m.destination||"—";
+  const note=allocation.note||m.details||"—";
+  const tr=document.createElement("tr");
+  [new Date(m.createdAt).toLocaleString("pt-BR"),m.userName,m.role,m.action,m.productName,(m.quantity??"")+(m.unit?" "+m.unit:""),destination,m.sector||"—",note].forEach(v=>{const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});
+  $("historyBody").appendChild(tr);
+ });
+ const catalog=$("registeredItemsBody");
+ if(catalog){
+  catalog.replaceChildren();
+  cachedProducts.forEach(p=>{
+   const tr=document.createElement("tr");
+   const vals=[p.name,p.category==="BEM"?"Bem permanente":"Mercadoria / consumo",p.category==="BEM"?(p.patrimonyCode||"—"):(p.code||"—"),p.category==="BEM"?"1":(p.quantity??0),p.unit||"un",p.responsibleSector||"—",p.description||p.condition||"—"];
+   vals.forEach(v=>{const td=document.createElement("td");td.textContent=v??"—";tr.appendChild(td);});
+   catalog.appendChild(tr);
+  });
+ }
 }
 $("printHistory").addEventListener("click",()=>window.print());
 $("emailForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/movements/email-report",{method:"POST",body:JSON.stringify({email:$("reportEmail").value,from:$("fromDate").value,to:$("toDate").value})});message(d.message);}catch(err){message(err.message,true);}});
@@ -152,12 +170,12 @@ async function loadDeliveries(){
     ?"Patrimônio: "+(d.patrimonyCode||"não informado")+" | Quantidade: 1 unidade | Responsável atual: "+d.sector+" | "+(d.condition?"Conservação: "+d.condition:"Responsabilidade patrimonial registrada")
     :"Entregue: "+d.quantity+" "+d.unit+" | Prestado: "+d.accounted+" | Falta: "+(d.quantity-d.accounted)+" | "+(d.closed?"CONCLUÍDA":"EM ABERTO");
    card.appendChild(summary);
-   (d.entries||[]).forEach(e=>{const p=document.createElement("p");p.textContent=(e.destination||"DESTINO")+" — "+e.quantity+" "+e.unit+" — "+(e.details||"");card.appendChild(p);});
+   (d.entries||[]).forEach(e=>{const p=document.createElement("p");p.textContent=((DESTINATION_LABELS[e.allocations?.[0]?.type||e.destination]||e.destination||"DESTINO")+" — "+e.quantity+" "+e.unit+" — "+(e.allocations?.[0]?.note||e.details||"Sem observação")+" — Responsável: "+(e.userName||"—")+" — "+new Date(e.createdAt).toLocaleString("pt-BR"));card.appendChild(p);});
    if(!d.closed && !d.isAsset){
     const form=document.createElement("form");form.className="form-grid";
-    const type=document.createElement("select");["DEVOLUCAO","CONSUMO","EXTRAVIO","DOACAO","VENDA","TRANSFERENCIA","OUTRO"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;type.appendChild(o);});
+    const type=document.createElement("select");[["CONSUMO","Consumido"],["EXTRAVIO","Extraviado"],["DOACAO","Doado"],["DEVOLUCAO","Devolvido ao estoque"],["TRANSFERENCIA","Transferido para outro setor"],["VENDA","Vendido"],["OUTRO","Outro destino"]].forEach(([v,label])=>{const o=document.createElement("option");o.value=v;o.textContent=label;type.appendChild(o);});
     const qty=document.createElement("input");qty.type="number";qty.min="0.001";qty.step="0.001";qty.placeholder="Quantidade";qty.required=true;
-    const note=document.createElement("input");note.placeholder="Justificativa / observação";
+    const note=document.createElement("input");note.placeholder="Justificativa / observação (obrigatória)";note.required=true;
     const target=document.createElement("input");target.placeholder="Setor de destino (transferência)";
     const add=document.createElement("button");add.textContent="Registrar destino";
     form.append(type,qty,note,target,add);
