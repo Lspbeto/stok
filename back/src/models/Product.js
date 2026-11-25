@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const schema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   code: { type: String, trim: true, default: "" },
+  // Identificação automática: códigos iniciados por 0.0 são registros fictícios.
+  isFictional: { type: Boolean, default: false, index: true },
   description: { type: String, default: "" },
   category: { type: String, enum: ["MERCADORIA", "BEM"], default: "MERCADORIA" },
   patrimonyCode: { type: String, trim: true, default: "" },
