@@ -1,19 +1,18 @@
-// Cadastro de mercadorias e bens permanentes.
+// Cadastro de mercadorias e bens permanentes, sempre pertencentes a uma empresa.
 const mongoose = require("mongoose");
 const schema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company", default: null, index: true },
   code: { type: String, trim: true, default: "" },
-  // Identificação automática: códigos iniciados por 0.0 são registros fictícios.
   isFictional: { type: Boolean, default: false, index: true },
   description: { type: String, default: "" },
   category: { type: String, enum: ["MERCADORIA", "BEM"], default: "MERCADORIA" },
   patrimonyCode: { type: String, trim: true, default: "" },
   condition: { type: String, trim: true, default: "" },
-  // Setor que atualmente responde pelo bem patrimonial.
   responsibleSector: { type: String, trim: true, default: "" },
   entryDate: { type: Date, default: null },
-  lastExitDate: { type: Date, default: null }, // Última saída registrada diretamente do estoque.
-  lastSectorExitDate: { type: Date, default: null }, // Última saída ou transferência registrada pelo setor.
+  lastExitDate: { type: Date, default: null },
+  lastSectorExitDate: { type: Date, default: null },
   quantity: { type: Number, min: 0, default: 0 },
   minimum: { type: Number, min: 0, default: 0 },
   unit: { type: String, trim: true, default: "un" },
