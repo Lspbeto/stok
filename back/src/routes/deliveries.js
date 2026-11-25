@@ -77,7 +77,7 @@ router.post("/:id/account", async (req, res, next) => {
     if (await Movement.exists({ undoOf: delivery._id, action: "FECHAMENTO_PRESTACAO" })) return res.status(409).json({ message: "Prestação já encerrada. Faça um ajuste rastreável com o administrador." });
     const type = String(req.body.type || "").toUpperCase(), amount = Number(req.body.quantity), note = String(req.body.note || "").trim();
     if (!TYPES.includes(type) || !Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Tipo de destino e quantidade positiva são obrigatórios." });
-    if (["EXTRAVIO","DOACAO","VENDA","OUTRO"].includes(type) && !note) return res.status(400).json({ message: "Justificativa obrigatória para extravio, doação, venda ou outro destino." });
+    if (!note) return res.status(400).json({ message: "Informe uma observação que justifique o que aconteceu com o item recebido." });
     if (type === "TRANSFERENCIA" && !String(req.body.targetSector || "").trim()) return res.status(400).json({ message: "Informe o setor que recebeu a transferência." });
     const accounted = await totalAccounted(delivery._id);
     if (accounted + amount > delivery.quantity) return res.status(400).json({ message: "Quantidade excede o saldo ainda não prestado." });
