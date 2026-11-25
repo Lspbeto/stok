@@ -9,6 +9,7 @@ const productRoutes = require("./routes/products");
 const movementRoutes = require("./routes/movements");
 const deliveryRoutes = require("./routes/deliveries");
 const databaseRoutes = require("./routes/database");
+const companyRoutes = require("./routes/companies");
 const app = express();
 app.use(cors({ origin: process.env.FRONT_ORIGIN ? process.env.FRONT_ORIGIN.split(",") : true }));
 app.use(express.json({ limit: "25mb" }));
@@ -16,6 +17,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, message: "API STOK fu
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/companies", companyRoutes);
 app.use("/api/movements", movementRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/database", databaseRoutes);
