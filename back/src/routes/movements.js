@@ -36,9 +36,10 @@ router.post("/email-report", auth, async (req, res, next) => {
     const items = await Movement.find(filter).sort({ createdAt: -1 }).limit(1000);
     const lines = items.map(m => [
       new Date(m.createdAt).toLocaleString("pt-BR"), m.userName, m.role, m.action,
-      m.productName, m.quantity ?? "", m.unit || "", m.details
+      m.productName, m.quantity ?? "", m.unit || "", m.destination || "",
+      m.sector || "", (m.allocations || []).map(a => [a.type, a.note, a.targetSector].filter(Boolean).join(" - ")).join(" | ") || m.details
     ].map(v => String(v ?? "").replace(/[\r\n;]+/g, " ")).join(";"));
-    const csv = ["Data;Usuário;Perfil;Ação;Produto;Quantidade;Unidade;Detalhes", ...lines].join("\n");
+    const csv = ["Data;Usuário;Perfil;Ação;Produto;Quantidade;Unidade;Destinação;Setor;Observação / justificativa", ...lines].join("\n");
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465),
       secure: String(process.env.SMTP_SECURE || "true") === "true",
