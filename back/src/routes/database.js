@@ -3,8 +3,8 @@
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const { EJSON } = require("bson");
-const { auth, adminOnly } = require("../middleware/auth");
-router.use(auth, adminOnly);
+const { auth, generalAdminOnly } = require("../middleware/auth");
+router.use(auth, generalAdminOnly);
 
 // Exporta as coleções da aplicação em Extended JSON, preservando ObjectIds e datas.
 router.get("/backup", async (_req, res, next) => {
