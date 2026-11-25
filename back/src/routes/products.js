@@ -29,7 +29,7 @@ router.put("/:id", async (req, res, next) => {
     const allowed = ["name", "code", "description", "minimum", "unit", "expiryDate", "category", "patrimonyCode", "condition", "responsibleSector", "entryDate"];
     const updates = {};
     allowed.forEach(key => { if (req.body[key] !== undefined) updates[key] = req.body[key]; });
-    if (updates.code !== undefined) updates.isFictional = String(normalizedCode).startsWith("0.0").test(String(updates.code).trim());
+    if (updates.code !== undefined) updates.isFictional = String(updates.code).trim().startsWith("0.0");
     const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true }, updates, { new: true, runValidators: true });
     if (!product) return res.status(404).json({ message: "Item não encontrado." });
     await log(req, "PRODUTO_EDITADO", product, "Dados do item alterados.");
