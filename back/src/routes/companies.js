@@ -3,8 +3,8 @@ const router = require("express").Router();
 const Company = require("../models/Company");
 const { auth, adminOnly } = require("../middleware/auth");
 function isValidCnpj(value) {
-  const cnpj = String(value || "").replace(/\\D/g, "");
-  if (cnpj.length !== 14 || /^(\\d)\\1{13}$/.test(cnpj)) return false;
+  const cnpj = String(value || "").replace(/\D/g, "");
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
   const calc = (base, weights) => {
     const sum = weights.reduce((total, weight, i) => total + Number(base[i]) * weight, 0);
     const mod = sum % 11;
@@ -19,7 +19,7 @@ async function verifyCnpjExists(cnpj) {
   if (response.status === 404) return false;
   if (!response.ok) throw new Error("Não foi possível consultar a Receita/base cadastral agora.");
   const data = await response.json();
-  return String(data.cnpj || "").replace(/\\D/g, "") === cnpj;
+  return String(data.cnpj || "").replace(/\D/g, "") === cnpj;
 }
 router.use(auth, adminOnly);
 router.get("/", async (_req, res, next) => {
@@ -28,7 +28,7 @@ router.get("/", async (_req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const name = String(req.body.name || "").trim();
-    const cnpj = String(req.body.cnpj || "").replace(/\\D/g, "");
+    const cnpj = String(req.body.cnpj || "").replace(/\D/g, "");
     if (!name || !cnpj) return res.status(400).json({ message: "Informe o nome e o CNPJ da empresa." });
     const isFictional = cnpj === "0000000000";
     if (!isFictional) {
