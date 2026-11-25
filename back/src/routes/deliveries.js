@@ -48,7 +48,7 @@ router.post("/", adminOnly, async (req, res, next) => {
       );
       if (!product) return res.status(409).json({ message: "Não foi possível atualizar a responsabilidade deste bem." });
       row = await Movement.create({
-        action: "ENTREGA_BEM", details: "Entrega patrimonial ao setor " + targetSector,
+        companyId: product.companyId, action: "ENTREGA_BEM", details: "Entrega patrimonial ao setor " + targetSector,
         productId: product._id, productName: product.name, quantity: 1, unit: "un",
         sector: targetSector, destination: "RESPONSABILIDADE_PATRIMONIAL",
         beforeQuantity: 1, afterQuantity: 1, ...actor(req.user)
@@ -61,7 +61,7 @@ router.post("/", adminOnly, async (req, res, next) => {
       );
       if (!product) return res.status(400).json({ message: "Produto inexistente, inativo ou estoque insuficiente." });
       row = await Movement.create({
-        action: "ENTREGA_SETOR", details: "Entrega de estoque ao setor " + targetSector,
+        companyId: product.companyId, action: "ENTREGA_SETOR", details: "Entrega de estoque ao setor " + targetSector,
         productId: product._id, productName: product.name, quantity: amount, unit: product.unit,
         beforeQuantity: product.quantity + amount, afterQuantity: product.quantity,
         sector: targetSector, ...actor(req.user)
@@ -74,7 +74,7 @@ router.post("/:id/account", async (req, res, next) => {
   try {
     const delivery = await Movement.findOne({ ...scope(req), _id: req.params.id, action: "ENTREGA_SETOR" });
     if (!delivery) return res.status(404).json({ message: "Entrega não encontrada." });
-    if (req.user.role !== "admin" && req.user.sector !== delivery.sector) return res.status(403).json({ message: "Esta entrega pertence a outro setor." });
+    if (!["adm_geral","adm_empresa"].includes(req.user.role) && req.user.sector !== delivery.sector) return res.status(403).json({ message: "Esta entrega pertence a outro setor." });
     if (await Movement.exists({ undoOf: delivery._id, action: "FECHAMENTO_PRESTACAO" })) return res.status(409).json({ message: "Prestação já encerrada. Faça um ajuste rastreável com o administrador." });
     const type = String(req.body.type || "").toUpperCase(), amount = Number(req.body.quantity), note = String(req.body.note || "").trim();
     if (!TYPES.includes(type) || !Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: "Tipo de destino e quantidade positiva são obrigatórios." });
@@ -91,7 +91,7 @@ router.post("/:id/account", async (req, res, next) => {
     const row = await Movement.create({ companyId: delivery.companyId, action: "DESTINACAO", details: note || type, productId: delivery.productId, productName: delivery.productName, quantity: amount, unit: delivery.unit, sector: delivery.sector, destination: type, allocations: [{ type, quantity: amount, note, targetSector: String(req.body.targetSector || "") }], undoOf: delivery._id, ...actor(req.user) });
     // A transferência cria uma nova responsabilidade para o setor destino, sem retornar ao estoque.
     if (type === "TRANSFERENCIA") {
-      await Movement.create({ action: "ENTREGA_SETOR", details: "Transferência recebida do setor " + delivery.sector, productId: delivery.productId, productName: delivery.productName, quantity: amount, unit: delivery.unit, sector: String(req.body.targetSector).trim(), ...actor(req.user) });
+      await Movement.create({ companyId: delivery.companyId, action: "ENTREGA_SETOR", details: "Transferência recebida do setor " + delivery.sector, productId: delivery.productId, productName: delivery.productName, quantity: amount, unit: delivery.unit, sector: String(req.body.targetSector).trim(), ...actor(req.user) });
     }
     res.status(201).json({ entry: row, totalAccounted: accounted + amount, remaining: delivery.quantity - accounted - amount });
   } catch (e) { next(e); }
@@ -104,7 +104,7 @@ router.post("/:id/close", async (req, res, next) => {
     if (await Movement.exists({ undoOf: delivery._id, action: "FECHAMENTO_PRESTACAO" })) return res.status(409).json({ message: "Prestação já encerrada." });
     const total = await totalAccounted(delivery._id);
     if (total !== Number(delivery.quantity)) return res.status(400).json({ message: "Não é possível concluir: destinos somam " + total + " de " + delivery.quantity + " " + delivery.unit + "." });
-    const row = await Movement.create({ action: "FECHAMENTO_PRESTACAO", details: "Prestação de contas concluída.", productId: delivery.productId, productName: delivery.productName, quantity: total, unit: delivery.unit, sector: delivery.sector, undoOf: delivery._id, ...actor(req.user) });
+    const row = await Movement.create({ companyId: delivery.companyId, action: "FECHAMENTO_PRESTACAO", details: "Prestação de contas concluída.", productId: delivery.productId, productName: delivery.productName, quantity: total, unit: delivery.unit, sector: delivery.sector, undoOf: delivery._id, ...actor(req.user) });
     res.status(201).json({ message: "Prestação de contas concluída.", record: row });
   } catch (e) { next(e); }
 });
