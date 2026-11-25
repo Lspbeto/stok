@@ -9,7 +9,7 @@ router.get("/", async (_req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const name = String(req.body.name || "").trim();
-    const cnpj = String(req.body.cnpj || "").replace(/[.\\/\\-\\s]/g, "");
+    const cnpj = String(req.body.cnpj || "").replace(/[^0-9]/g, "");
     if (!name || !cnpj) return res.status(400).json({ message: "Informe o nome e o CNPJ da empresa." });
     const isFictional = cnpj === "0000000000";
     if (!isFictional && cnpj.length !== 14) return res.status(400).json({ message: "Informe um CNPJ com 14 dígitos ou use 0000000000 para empresa fictícia." });
