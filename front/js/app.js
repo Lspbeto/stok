@@ -11,7 +11,7 @@ async function api(path, options={}) {
 }
 function showLoggedIn(user) {
   currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("app").hidden=false;
-  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=user.role!=="admin"; $("databaseTab").hidden=user.role!=="admin"; $("databaseTools").hidden=true;
+  $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
   if(user.role==="operador") $("deliveryForm").hidden=true;
 }
@@ -64,6 +64,7 @@ $("productForm").addEventListener("submit",async e=>{e.preventDefault();try{
   condition:asset?$("condition").value.trim():"",
   responsibleSector:asset?$("responsibleSector").value.trim():$("goodsSector").value.trim()
  };
+ if(currentUser.role==="adm_geral") payload.companyId=$("productCompany").value;
  await api("/products",{method:"POST",body:JSON.stringify(payload)});
  e.target.reset();$("quantity").value=0;$("assetQuantity").value=1;toggleProductFields();await loadProducts();message("Item cadastrado.");
  }catch(err){message(err.message,true);}});
@@ -97,7 +98,7 @@ async function loadProducts(){try{
   if(!asset){["ENTRADA","SAIDA"].forEach(type=>{
    const b=document.createElement("button");b.textContent=type==="ENTRADA"?"Entrada +":"Saída −";b.className=type==="SAIDA"?"secondary":"";b.style.margin="2px";b.addEventListener("click",()=>stockMove(p,type));actions.appendChild(b);
   });}
-  if(asset&&currentUser.role==="admin"){
+  if(asset&&["adm_geral","adm_empresa"].includes(currentUser.role)){
    const transfer=document.createElement("button");transfer.textContent="Transferir setor";transfer.style.margin="2px";
    transfer.addEventListener("click",async()=>{const sector=prompt("Novo setor responsável pelo bem "+p.name+":",p.responsibleSector||"");if(!sector)return;try{const d=await api("/products/"+p._id+"/transfer",{method:"POST",body:JSON.stringify({sector})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});
    actions.appendChild(transfer);
@@ -161,7 +162,7 @@ async function loadDeliveries(){
   select.removeEventListener("change",updateDeliveryQuantity);
   select.addEventListener("change",updateDeliveryQuantity);
   updateDeliveryQuantity();
-  $("deliveryForm").hidden=currentUser.role!=="admin";
+  $("deliveryForm").hidden=!["adm_geral","adm_empresa"].includes(currentUser.role);
   $("deliveryList").replaceChildren();
   items.forEach(d=>{
    const card=document.createElement("article");card.className="panel";
@@ -221,11 +222,12 @@ $("restoreButton").addEventListener("click",async()=>{
 async function loadCompanies(){
  try{
   const companies=await api("/companies"),body=$("companiesBody");body.replaceChildren();
+  ["productCompany","userCompany"].forEach(id=>{const el=$(id);if(!el)return;const keep=el.value;el.replaceChildren();companies.forEach(c=>{const o=document.createElement("option");o.value=c._id;o.textContent=c.name;el.appendChild(o);});if([...el.options].some(o=>o.value===keep))el.value=keep;});
   companies.forEach(c=>{
    const tr=document.createElement("tr");
    [c.name,c.cnpj,c.isFictional?"Fictícia":"Real"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});
    const td=document.createElement("td");
-   if(c.isFictional){const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.addEventListener("click",async()=>{if(!confirm("Desativar a empresa fictícia "+c.name+"?"))return;try{const d=await api("/companies/"+c._id,{method:"DELETE"});message(d.message);loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(del);}
+   if(currentUser.role==="adm_geral"){const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.addEventListener("click",async()=>{if(!confirm("Desativar a empresa fictícia "+c.name+"?"))return;try{const d=await api("/companies/"+c._id,{method:"DELETE"});message(d.message);loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(del);}
    else td.textContent="Protegida";
    tr.appendChild(td);body.appendChild(tr);
   });
@@ -236,5 +238,5 @@ $("companyForm").addEventListener("submit",async e=>{
  try{const d=await api("/companies",{method:"POST",body:JSON.stringify({name:$("companyName").value,cnpj:$("companyCnpj").value})});e.target.reset();message(d.isFictional?"Empresa fictícia cadastrada.":"Empresa cadastrada.");loadCompanies();}
  catch(err){message(err.message,true);}
 });
-\n$("userForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/users",{method:"POST",body:JSON.stringify({name:$("userName").value,email:$("userEmail").value,password:$("userPassword").value,role:$("userRole").value,sector:$("userSector").value,registrationNumber:$("userRegistrationNumber").value})});e.target.reset();message("Usuário criado.");}catch(err){message(err.message,true);}});
+\n$("userForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/users",{method:"POST",body:JSON.stringify({name:$("userName").value,email:$("userEmail").value,password:$("userPassword").value,role:$("userRole").value,sector:$("userSector").value,registrationNumber:$("userRegistrationNumber").value,...(currentUser.role==="adm_geral"?{companyId:$("userCompany").value}:{})})});e.target.reset();message("Usuário criado.");}catch(err){message(err.message,true);}});
 (async()=>{if(!token)return;try{const user=await api("/auth/me");showLoggedIn(user);}catch(_){localStorage.removeItem("stok_token");token=null;}})();
