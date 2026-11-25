@@ -7,6 +7,7 @@ const nodemailer = require("nodemailer");
 const User = require("../models/User");
 const Company = require("../models/Company");
 const { auth, roleOf } = require("../middleware/auth");
+const GENERAL_ADMINS = new Set(["lspbeto@gmail.com", "lspbeto@yahoo.com.br"]);
 function publicUser(user) { return { id: user._id, name: user.name, email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: roleOf(user), sector: user.sector || "" }; }
 router.post("/login", async (req, res, next) => {
   try {
