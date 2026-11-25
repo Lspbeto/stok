@@ -19,7 +19,7 @@ function showLoggedIn(user) {
 }
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/login",{method:"POST",body:JSON.stringify({email:$("email").value,password:$("password").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);message("Login realizado.");}catch(err){message(err.message,true);}});
 // Alterna entre login e cadastro mantendo o mesmo cartão visual.
-$("showRegister").addEventListener("click",()=>{$("login").hidden=true;$("registerScreen").hidden=false;});
+$("showRegister").addEventListener("click",async()=>{$("login").hidden=true;$("registerScreen").hidden=false;try{const companies=await api("/auth/companies");const sel=$("registerCompany");sel.replaceChildren();const empty=document.createElement("option");empty.value="";empty.textContent="Selecione sua empresa";sel.appendChild(empty);companies.forEach(c=>{const o=document.createElement("option");o.value=c._id;o.textContent=c.name;sel.appendChild(o);});}catch(err){message(err.message,true);}});
 $("backToLogin").addEventListener("click",()=>{$("registerScreen").hidden=true;$("login").hidden=false;});
 $("showForgotPassword").addEventListener("click",()=>{$("login").hidden=true;$("forgotScreen").hidden=false;});
 $("backFromForgot").addEventListener("click",()=>{$("forgotScreen").hidden=true;$("login").hidden=false;});
@@ -27,7 +27,7 @@ $("forgotForm").addEventListener("submit",async e=>{e.preventDefault();try{const
 let resetToken=new URLSearchParams(window.location.search).get("reset");
 if(resetToken){token=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("login").hidden=true;$("registerScreen").hidden=true;$("forgotScreen").hidden=true;$("resetScreen").hidden=false;}
 $("resetForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/reset-password",{method:"POST",body:JSON.stringify({token:resetToken,password:$("resetPassword").value})});message(d.message);window.history.replaceState({},"",window.location.pathname);$("resetScreen").hidden=true;$("login").hidden=false;resetToken=null;e.target.reset();}catch(err){message(err.message,true);}});
-$("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value,registrationNumber:$("registerRegistrationNumber").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
+$("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value,registrationNumber:$("registerRegistrationNumber").value,companyId:$("registerCompany").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
 $("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("registerScreen").hidden=true;$("forgotScreen").hidden=true;$("resetScreen").hidden=true;$("login").hidden=false;});
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.hidden=x.id!==b.dataset.tab);
@@ -233,7 +233,7 @@ async function loadCompanies(){
    const td=document.createElement("td");
    if(["adm_geral","adm_empresa"].includes(currentUser.role)){const edit=document.createElement("button");edit.textContent="Editar nome";edit.className="secondary";edit.addEventListener("click",async()=>{const name=prompt("Nome da empresa:",c.name);if(!name)return;try{await api("/companies/"+c._id,{method:"PUT",body:JSON.stringify({name})});message("Empresa atualizada.");loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(edit);}
    if(currentUser.role==="adm_geral"){const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.addEventListener("click",async()=>{if(!confirm("Desativar a empresa fictícia "+c.name+"?"))return;try{const d=await api("/companies/"+c._id,{method:"DELETE"});message(d.message);loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(del);}
-   else td.textContent="Protegida";
+
    tr.appendChild(td);body.appendChild(tr);
   });
  }catch(err){message(err.message,true);}
