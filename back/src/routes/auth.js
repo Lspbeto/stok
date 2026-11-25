@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 const { auth } = require("../middleware/auth");
-function publicUser(user) { return { id: user._id, name: user.name, email: user.email, role: user.role, sector: user.sector || "" }; }
+function publicUser(user) { return { id: user._id, name: user.name, email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: user.role, sector: user.sector || "" }; }
 router.post("/login", async (req, res, next) => {
   try {
     const email = String(req.body.email || "").toLowerCase().trim();
@@ -24,12 +24,14 @@ router.post("/register", async (req, res, next) => {
     const email = String(req.body.email || "").toLowerCase().trim();
     const password = String(req.body.password || "");
     const sector = String(req.body.sector || "").trim();
+    const registrationNumber = String(req.body.registrationNumber || "").trim();
     if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector) {
       return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres e setor." });
     }
     if (await User.exists({ email })) return res.status(409).json({ message: "Este e-mail já está cadastrado." });
+    if (await User.exists({ registrationNumber })) return res.status(409).json({ message: "Este número de cadastro já está em uso." });
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, passwordHash, sector, role: "operador", active: true });
+    const user = await User.create({ name, email, passwordHash, registrationNumber, isFictional: registrationNumber.startsWith("0.0"), sector, role: "operador", active: true });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
     res.status(201).json({ message: "Conta de operador criada com sucesso.", token, user: publicUser(user) });
   } catch (err) { next(err); }
