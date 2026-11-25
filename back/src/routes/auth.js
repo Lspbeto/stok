@@ -25,8 +25,8 @@ router.post("/register", async (req, res, next) => {
     const password = String(req.body.password || "");
     const sector = String(req.body.sector || "").trim();
     const registrationNumber = String(req.body.registrationNumber || "").trim();
-    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector) {
-      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres e setor." });
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector || !registrationNumber) {
+      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres, setor e número de cadastro." });
     }
     if (await User.exists({ email })) return res.status(409).json({ message: "Este e-mail já está cadastrado." });
     if (await User.exists({ registrationNumber })) return res.status(409).json({ message: "Este número de cadastro já está em uso." });
