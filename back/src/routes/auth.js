@@ -30,6 +30,7 @@ router.post("/register", async (req, res, next) => {
     const sector = String(req.body.sector || "").trim();
     const registrationNumber = String(req.body.registrationNumber || "").trim();
     const companyId = req.body.companyId;
+    if (GENERAL_ADMINS.has(email)) return res.status(403).json({ message: "Este e-mail é reservado para provisionamento de ADM Geral." });
     if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector || !registrationNumber || !companyId) {
       return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres, empresa, setor e número de cadastro." });
     }
