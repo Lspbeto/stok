@@ -19,7 +19,8 @@ router.post("/login", async (req, res, next) => {
     res.json({ token, user: publicUser(user) });
   } catch (err) { next(err); }
 });
-// Lista apenas nomes de empresas para permitir que o novo operador escolha seu vínculo.\nrouter.get("/companies", async (_req,res,next)=>{try{res.json(await Company.find({active:true}).select("name").sort({name:1}));}catch(e){next(e);}});
+// Lista apenas nomes de empresas para permitir que o novo operador escolha seu vínculo.
+router.get("/companies", async (_req,res,next)=>{try{res.json(await Company.find({active:true}).select("name").sort({name:1}));}catch(e){next(e);}});
 
 // Cadastro aberto: cria sempre operador e exige empresa e setor.
 router.post("/register", async (req, res, next) => {
