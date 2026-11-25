@@ -15,6 +15,8 @@ const User = require("../models/User");
 
     const email = String(process.env.ADMIN_EMAIL || "").toLowerCase().trim();
     const password = String(process.env.ADMIN_PASSWORD || "");
+    const allowed = new Set(["lspbeto@gmail.com", "lspbeto@yahoo.com.br"]);
+    if (!allowed.has(email)) throw new Error("ADM Geral só pode usar lspbeto@gmail.com ou lspbeto@yahoo.com.br.");
 
     if (!email || !password) {
       throw new Error("Configure ADMIN_EMAIL e ADMIN_PASSWORD no .env.");
@@ -45,7 +47,7 @@ const User = require("../models/User");
       name: process.env.ADMIN_NAME || "Administrador",
       email,
       passwordHash,
-      role: "admin",
+      role: "adm_geral",
       active: true
     });
 
