@@ -1,56 +1,13 @@
-// Cadastro de empresas com validação do CNPJ e identificação de registros fictícios.
-const router = require("express").Router();
-const Company = require("../models/Company");
-const { auth, adminOnly } = require("../middleware/auth");
-function isValidCnpj(value) {
-  const cnpj = String(value || "").replace(/\D/g, "");
-  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
-  const calc = (base, weights) => {
-    const sum = weights.reduce((total, weight, i) => total + Number(base[i]) * weight, 0);
-    const mod = sum % 11;
-    return mod < 2 ? 0 : 11 - mod;
-  };
-  const first = calc(cnpj.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
-  const second = calc(cnpj.slice(0, 12) + first, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
-  return cnpj.endsWith(String(first) + String(second));
-}
-async function verifyCnpjExists(cnpj) {
-  const response = await fetch("https://brasilapi.com.br/api/cnpj/v1/" + cnpj, { signal: AbortSignal.timeout(8000) });
-  if (response.status === 404) return false;
-  if (!response.ok) throw new Error("Não foi possível consultar a Receita/base cadastral agora.");
-  const data = await response.json();
-  return String(data.cnpj || "").replace(/\D/g, "") === cnpj;
-}
-router.use(auth, adminOnly);
-router.get("/", async (_req, res, next) => {
-  try { res.json(await Company.find({ active: true }).sort({ name: 1 })); } catch (e) { next(e); }
-});
-router.post("/", async (req, res, next) => {
-  try {
-    const name = String(req.body.name || "").trim();
-    const cnpj = String(req.body.cnpj || "").replace(/\D/g, "");
-    if (!name || !cnpj) return res.status(400).json({ message: "Informe o nome e o CNPJ da empresa." });
-    const isFictional = cnpj === "0000000000";
-    if (!isFictional) {
-      if (!isValidCnpj(cnpj)) return res.status(400).json({ message: "CNPJ inválido. Confira os 14 dígitos e os verificadores." });
-      if (!(await verifyCnpjExists(cnpj))) return res.status(404).json({ message: "CNPJ não encontrado na consulta cadastral. Confira o número." });
-      if (await Company.exists({ cnpj, active: true })) return res.status(409).json({ message: "Este CNPJ já está cadastrado." });
-    }
-    const company = await Company.create({ name, cnpj, isFictional });
-    res.status(201).json(company);
-  } catch (e) {
-    if (e.name === "TimeoutError" || e.name === "AbortError") return res.status(503).json({ message: "A consulta do CNPJ demorou demais. Tente novamente." });
-    next(e);
-  }
-});
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const company = await Company.findOne({ _id: req.params.id, active: true });
-    if (!company) return res.status(404).json({ message: "Empresa não encontrada." });
-    if (!company.isFictional) return res.status(403).json({ message: "Somente empresas fictícias podem ser excluídas por esta função." });
-    company.active = false;
-    await company.save();
-    res.json({ message: "Empresa fictícia desativada." });
-  } catch (e) { next(e); }
-});
-module.exports = router;
+// Empresas: ADM Geral enxerga todas; ADM Empresarial apenas a própria.
+const router=require("express").Router();
+const Company=require("../models/Company");
+const Movement=require("../models/Movement");
+const {auth,isGeneralAdmin,adminOnly}=require("../middleware/auth");
+function validCnpj(value){const n=String(value||"").replace(/\D/g,"");if(n.length!==14||/^(\d)\1{13}$/.test(n))return false;const calc=(s,w)=>{const sum=w.reduce((a,x,i)=>a+Number(s[i])*x,0),m=sum%11;return m<2?0:11-m;};const a=calc(n.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]),b=calc(n.slice(0,12)+a,[6,5,4,3,2,9,8,7,6,5,4,3,2]);return n.endsWith(""+a+b);}
+async function existsCnpj(cnpj){const response=await fetch("https://brasilapi.com.br/api/cnpj/v1/"+cnpj,{signal:AbortSignal.timeout(8000)});if(response.status===404)return false;if(!response.ok)throw new Error("Consulta cadastral indisponível.");const data=await response.json();return String(data.cnpj||"").replace(/\D/g,"")===cnpj;}
+router.use(auth);
+router.get("/",async(req,res,next)=>{try{const filter=isGeneralAdmin(req.user)?{active:true}:{_id:req.user.companyId||null,active:true};res.json(await Company.find(filter).sort({name:1}));}catch(e){next(e);}});
+router.post("/",adminOnly,async(req,res,next)=>{try{if(!isGeneralAdmin(req.user))return res.status(403).json({message:"Somente ADM Geral pode cadastrar empresas."});const name=String(req.body.name||"").trim(),cnpj=String(req.body.cnpj||"").replace(/\D/g,"");if(!name||!cnpj)return res.status(400).json({message:"Informe nome e CNPJ."});const fictional=cnpj==="0000000000";if(!fictional){if(!validCnpj(cnpj))return res.status(400).json({message:"CNPJ inválido."});if(!await existsCnpj(cnpj))return res.status(404).json({message:"CNPJ não encontrado na consulta cadastral."});if(await Company.exists({cnpj,active:true}))return res.status(409).json({message:"CNPJ já cadastrado."});}const company=await Company.create({name,cnpj,isFictional:fictional});res.status(201).json(company);}catch(e){if(e.name==="TimeoutError"||e.name==="AbortError")return res.status(503).json({message:"Consulta do CNPJ indisponível; tente novamente."});next(e);}});
+router.put("/:id",adminOnly,async(req,res,next)=>{try{if(!isGeneralAdmin(req.user)&&String(req.user.companyId)!==String(req.params.id))return res.status(403).json({message:"Você só pode alterar sua própria empresa."});const company=await Company.findOne({_id:req.params.id,active:true});if(!company)return res.status(404).json({message:"Empresa não encontrada."});if(req.body.name!==undefined)company.name=String(req.body.name).trim();await company.save();res.json(company);}catch(e){next(e);}});
+router.delete("/:id",adminOnly,async(req,res,next)=>{try{if(!isGeneralAdmin(req.user))return res.status(403).json({message:"Somente ADM Geral pode desativar empresas."});const company=await Company.findOne({_id:req.params.id,active:true});if(!company)return res.status(404).json({message:"Empresa não encontrada."});company.active=false;await company.save();res.json({message:"Empresa desativada; histórico preservado."});}catch(e){next(e);}});
+module.exports=router;
