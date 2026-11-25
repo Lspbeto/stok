@@ -1,77 +1,13 @@
-// Cadastro e manutenção de produtos e bens. Exclusões são lógicas para preservar o histórico.
-const router = require("express").Router();
-const Product = require("../models/Product");
-const Movement = require("../models/Movement");
-const { auth, adminOnly } = require("../middleware/auth");
-router.use(auth);
-async function log(req, action, product, details) {
-  await Movement.create({ action, details, productId: product?._id || null, productName: product?.name || "", userId: req.user._id, userName: req.user.name, role: req.user.role });
-}
-router.get("/", async (_req, res, next) => {
-  try { res.json(await Product.find({ active: true }).sort({ name: 1 })); } catch (e) { next(e); }
-});
-router.post("/", async (req, res, next) => {
-  try {
-    const { name, code, description, quantity, minimum, unit, expiryDate, category, patrimonyCode, condition, responsibleSector, entryDate } = req.body;
-    if (!name) return res.status(400).json({ message: "O nome do item é obrigatório." });
-    const type = category === "BEM" ? "BEM" : "MERCADORIA";
-    if (type === "BEM" && !String(patrimonyCode || "").trim()) return res.status(400).json({ message: "Informe o número de patrimônio do bem." });
-    if (type === "BEM" && !String(responsibleSector || "").trim()) return res.status(400).json({ message: "Informe o setor responsável pelo bem." });
-    if (type === "BEM" && await Product.exists({ patrimonyCode: String(patrimonyCode).trim(), active: true })) return res.status(409).json({ message: "Este número de patrimônio já está cadastrado." });
-    const normalizedCode = String(code || "").trim();
-    const product = await Product.create({ name, code: normalizedCode, isFictional: normalizedCode.startsWith("0.0"), description, category: type, patrimonyCode, condition, responsibleSector: String(responsibleSector || "").trim(), entryDate: entryDate || new Date(), quantity: type === "BEM" ? 1 : Number(quantity || 0), minimum: Number(minimum || 0), unit: unit || "un", expiryDate: expiryDate || null });
-    await log(req, "PRODUTO_CRIADO", product, "Item cadastrado: " + type + ".");
-    res.status(201).json(product);
-  } catch (e) { next(e); }
-});
-router.put("/:id", async (req, res, next) => {
-  try {
-    const allowed = ["name", "code", "description", "minimum", "unit", "expiryDate", "category", "patrimonyCode", "condition", "responsibleSector", "entryDate"];
-    const updates = {};
-    allowed.forEach(key => { if (req.body[key] !== undefined) updates[key] = req.body[key]; });
-    if (updates.code !== undefined) updates.isFictional = String(updates.code).trim().startsWith("0.0");
-    const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true }, updates, { new: true, runValidators: true });
-    if (!product) return res.status(404).json({ message: "Item não encontrado." });
-    await log(req, "PRODUTO_EDITADO", product, "Dados do item alterados.");
-    res.json(product);
-  } catch (e) { next(e); }
-});
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true }, { active: false }, { new: true });
-    if (!product) return res.status(404).json({ message: "Item não encontrado." });
-    await log(req, "PRODUTO_EXCLUIDO", product, "Item desativado (histórico preservado).");
-    res.json({ message: "Item desativado." });
-  } catch (e) { next(e); }
-});
-// Transferência patrimonial altera o responsável, sem consumir nem alterar o estoque.
-router.post("/:id/transfer", adminOnly, async (req, res, next) => {
-  try {
-    const sector = String(req.body.sector || "").trim();
-    if (!sector) return res.status(400).json({ message: "Informe o setor que receberá o bem." });
-    const product = await Product.findOneAndUpdate({ _id: req.params.id, active: true, category: "BEM" }, { responsibleSector: sector, lastSectorExitDate: new Date() }, { new: true });
-    if (!product) return res.status(404).json({ message: "Bem patrimonial não encontrado." });
-    await Movement.create({ action: "TRANSFERENCIA_BEM", details: "Bem transferido para " + sector, productId: product._id, productName: product.name, quantity: 1, unit: product.unit, sector, destination: "TRANSFERENCIA_BEM", userId: req.user._id, userName: req.user.name, role: req.user.role });
-    res.json({ message: "Responsabilidade do bem transferida.", product });
-  } catch (e) { next(e); }
-});
-
-// Registra a saída definitiva de um bem patrimonial, preservando seu cadastro e histórico.
-router.post("/:id/exit", adminOnly, async (req, res, next) => {
-  try {
-    const product = await Product.findOneAndUpdate(
-      { _id: req.params.id, active: true, category: "BEM", lastExitDate: null },
-      { lastExitDate: new Date() },
-      { new: true }
-    );
-    if (!product) return res.status(404).json({ message: "Bem não encontrado ou já possui saída registrada." });
-    await Movement.create({
-      action: "SAIDA_BEM",
-      details: String(req.body.reason || "Saída definitiva do bem").trim(),
-      productId: product._id, productName: product.name, quantity: 1, unit: "un",
-      sector: product.responsibleSector, userId: req.user._id, userName: req.user.name, role: req.user.role
-    });
-    res.json({ message: "Saída do bem registrada no histórico.", product });
-  } catch (e) { next(e); }
-});
-module.exports = router;
+// Produtos multiempresa; alterações e exclusões são limitadas à empresa do usuário.
+const router=require("express").Router();const Product=require("../models/Product");const Movement=require("../models/Movement");
+const {auth,adminOnly,isGeneralAdmin}=require("../middleware/auth");router.use(auth);
+const scope=req=>isGeneralAdmin(req.user)?{}:{companyId:req.user.companyId||null};
+async function log(req,action,p,details){await Movement.create({companyId:p.companyId,action,details,productId:p._id,productName:p.name,userId:req.user._id,userName:req.user.name,role:req.user.role});}
+router.get("/",async(req,res,next)=>{try{res.json(await Product.find({...scope(req),active:true}).sort({name:1}));}catch(e){next(e);}});
+router.post("/",adminOnly,async(req,res,next)=>{try{const {name,code,description,quantity,minimum,unit,expiryDate,category,patrimonyCode,condition,responsibleSector,entryDate}=req.body;if(!name)return res.status(400).json({message:"Nome obrigatório."});if(!req.user.companyId&&!isGeneralAdmin(req.user))return res.status(403).json({message:"Usuário sem empresa vinculada."});const companyId=isGeneralAdmin(req.user)?req.body.companyId:req.user.companyId;if(!companyId)return res.status(400).json({message:"Selecione a empresa."});const type=category==="BEM"?"BEM":"MERCADORIA";if(type==="BEM"&&(!String(patrimonyCode||"").trim()||!String(responsibleSector||"").trim()))return res.status(400).json({message:"Bem exige patrimônio e setor responsável."});if(type==="BEM"&&await Product.exists({companyId,patrimonyCode:String(patrimonyCode).trim(),active:true}))return res.status(409).json({message:"Patrimônio já cadastrado nesta empresa."});const normalizedCode=String(code||"").trim();const p=await Product.create({companyId,name,code:normalizedCode,isFictional:normalizedCode.startsWith("0.0"),description,category:type,patrimonyCode,condition,responsibleSector,entryDate:entryDate||new Date(),quantity:type==="BEM"?1:Number(quantity||0),minimum:Number(minimum||0),unit:unit||"un",expiryDate:expiryDate||null});await log(req,"PRODUTO_CRIADO",p,"Item cadastrado.");res.status(201).json(p);}catch(e){next(e);}});
+router.put("/:id",adminOnly,async(req,res,next)=>{try{const p=await Product.findOne({...scope(req),_id:req.params.id,active:true});if(!p)return res.status(404).json({message:"Item não encontrado nesta empresa."});for(const k of ["name","code","description","minimum","unit","expiryDate","category","patrimonyCode","condition","responsibleSector","entryDate"])if(req.body[k]!==undefined)p[k]=req.body[k];if(req.body.code!==undefined)p.isFictional=String(req.body.code).startsWith("0.0");await p.save();await log(req,"PRODUTO_EDITADO",p,"Dados do item alterados.");res.json(p);}catch(e){next(e);}});
+router.delete("/:id",adminOnly,async(req,res,next)=>{try{const p=await Product.findOne({...scope(req),_id:req.params.id,active:true});if(!p)return res.status(404).json({message:"Item não encontrado nesta empresa."});p.active=false;await p.save();await log(req,"PRODUTO_EXCLUIDO",p,"Item desativado; histórico preservado.");res.json({message:"Item desativado."});}catch(e){next(e);}});
+async function getProduct(req,id){return Product.findOne({...scope(req),_id:id,active:true});}
+router.post("/:id/transfer",adminOnly,async(req,res,next)=>{try{const sector=String(req.body.sector||"").trim();if(!sector)return res.status(400).json({message:"Informe o setor destino."});const p=await Product.findOneAndUpdate({...scope(req),_id:req.params.id,active:true,category:"BEM"},{responsibleSector:sector,lastSectorExitDate:new Date()},{new:true});if(!p)return res.status(404).json({message:"Bem não encontrado nesta empresa."});await Movement.create({companyId:p.companyId,action:"TRANSFERENCIA_BEM",details:"Bem transferido para "+sector,productId:p._id,productName:p.name,quantity:1,unit:p.unit,sector,userId:req.user._id,userName:req.user.name,role:req.user.role});res.json({message:"Responsabilidade transferida.",product:p});}catch(e){next(e);}});
+router.post("/:id/exit",adminOnly,async(req,res,next)=>{try{const p=await Product.findOneAndUpdate({...scope(req),_id:req.params.id,active:true,category:"BEM",lastExitDate:null},{lastExitDate:new Date()},{new:true});if(!p)return res.status(404).json({message:"Bem não encontrado ou já baixado."});await Movement.create({companyId:p.companyId,action:"SAIDA_BEM",details:String(req.body.reason||"Saída definitiva"),productId:p._id,productName:p.name,quantity:1,unit:"un",sector:p.responsibleSector,userId:req.user._id,userName:req.user.name,role:req.user.role});res.json({message:"Saída registrada.",product:p});}catch(e){next(e);}});
+module.exports=router;
