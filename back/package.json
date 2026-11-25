@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "criar-admin": "node src/scripts/criar-admin.js"
+    "criar-admin": "node src/scripts/criar-admin.js",
+    "vincular-empresas": "node src/scripts/vincular-empresas.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
