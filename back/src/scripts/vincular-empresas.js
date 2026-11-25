@@ -18,7 +18,7 @@ function identify(values) {
   return matches.length === 1 ? matches[0].key : null;
 }
 async function getCompany(def) {
-  let company = await Company.findOne({ name: new RegExp("^" + def.name + "$", "i"), active: true });
+  let company = await Company.findOne({ name: new RegExp(def.name, "i"), active: true });
   if (!company) company = await Company.create({ name: def.name, cnpj: "0000000000", isFictional: true, active: true });
   return company;
 }
