@@ -1,4 +1,4 @@
-// Usuário: senha protegida por hash e setor obrigatório para operadores.
+// Usuário: senha protegida por hash e vínculo obrigatório à empresa após migração.
 const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true, select: false },
   registrationNumber: { type: String, trim: true, default: "", index: true },
   isFictional: { type: Boolean, default: false, index: true },
-  role: { type: String, enum: ["admin", "operador"], default: "operador" },
-  // O setor indica onde o operador trabalha e para onde recebe materiais.
+  role: { type: String, enum: ["admin", "adm_geral", "adm_empresa", "adm_setor", "operador"], default: "operador" },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company", default: null, index: true },
   sector: { type: String, trim: true, default: "" },
   active: { type: Boolean, default: true },
   passwordResetTokenHash: { type: String, default: null, select: false },
