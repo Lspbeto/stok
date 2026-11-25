@@ -5,8 +5,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
-const { auth } = require("../middleware/auth");
-function publicUser(user) { return { id: user._id, name: user.name, email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: user.role, sector: user.sector || "" }; }
+const { auth, roleOf } = require("../middleware/auth");
+function publicUser(user) { return { id: user._id, name: user.name, email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: roleOf(user), sector: user.sector || "" }; }
 router.post("/login", async (req, res, next) => {
   try {
     const email = String(req.body.email || "").toLowerCase().trim();
