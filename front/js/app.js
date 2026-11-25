@@ -243,5 +243,6 @@ $("companyForm").addEventListener("submit",async e=>{
  try{const d=await api("/companies",{method:"POST",body:JSON.stringify({name:$("companyName").value,cnpj:$("companyCnpj").value})});e.target.reset();message(d.isFictional?"Empresa fictícia cadastrada.":"Empresa cadastrada.");loadCompanies();}
  catch(err){message(err.message,true);}
 });
-\n$("userForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/users",{method:"POST",body:JSON.stringify({name:$("userName").value,email:$("userEmail").value,password:$("userPassword").value,role:$("userRole").value,sector:$("userSector").value,registrationNumber:$("userRegistrationNumber").value,...(currentUser.role==="adm_geral"?{companyId:$("userCompany").value}:{})})});e.target.reset();message("Usuário criado.");}catch(err){message(err.message,true);}});
+
+$("userForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/users",{method:"POST",body:JSON.stringify({name:$("userName").value,email:$("userEmail").value,password:$("userPassword").value,role:$("userRole").value,sector:$("userSector").value,registrationNumber:$("userRegistrationNumber").value,...(currentUser.role==="adm_geral"?{companyId:$("userCompany").value}:{})})});e.target.reset();message("Usuário criado.");}catch(err){message(err.message,true);}});
 (async()=>{if(!token)return;try{const user=await api("/auth/me");showLoggedIn(user);}catch(_){localStorage.removeItem("stok_token");token=null;}})();
