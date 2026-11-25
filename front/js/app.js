@@ -13,6 +13,8 @@ function showLoggedIn(user) {
   currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("app").hidden=false;
   $("welcome").textContent="Olá, "+user.name+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
+  $("productForm").hidden=!["adm_geral","adm_empresa"].includes(user.role);
+  if(["adm_geral","adm_empresa"].includes(user.role)) loadCompanies();
   if(user.role==="operador") $("deliveryForm").hidden=true;
 }
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/login",{method:"POST",body:JSON.stringify({email:$("email").value,password:$("password").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);message("Login realizado.");}catch(err){message(err.message,true);}});
@@ -104,7 +106,8 @@ async function loadProducts(){try{
    actions.appendChild(transfer);
    if(!p.lastExitDate){const exit=document.createElement("button");exit.textContent="Registrar saída";exit.className="secondary";exit.style.margin="2px";exit.addEventListener("click",async()=>{const reason=prompt("Motivo da saída definitiva do bem:");if(reason===null)return;try{const d=await api("/products/"+p._id+"/exit",{method:"POST",body:JSON.stringify({reason})});message(d.message);loadProducts();}catch(err){message(err.message,true);}});actions.appendChild(exit);}
   }
-  const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.style.margin="2px";del.addEventListener("click",async()=>{if(!confirm("Deseja desativar "+p.name+"?"))return;try{await api("/products/"+p._id,{method:"DELETE"});loadProducts();message("Item desativado.");}catch(err){message(err.message,true);}});actions.appendChild(del);tr.appendChild(actions);
+  if(["adm_geral","adm_empresa"].includes(currentUser.role)){const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.style.margin="2px";del.addEventListener("click",async()=>{if(!confirm("Deseja desativar "+p.name+"?"))return;try{await api("/products/"+p._id,{method:"DELETE"});loadProducts();message("Item desativado.");}catch(err){message(err.message,true);}});actions.appendChild(del);}
+  tr.appendChild(actions);
   (asset?$("assetsBody"):$("goodsBody")).appendChild(tr);
  });
  }catch(err){message(err.message,true);}}
@@ -227,6 +230,7 @@ async function loadCompanies(){
    const tr=document.createElement("tr");
    [c.name,c.cnpj,c.isFictional?"Fictícia":"Real"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});
    const td=document.createElement("td");
+   if(["adm_geral","adm_empresa"].includes(currentUser.role)){const edit=document.createElement("button");edit.textContent="Editar nome";edit.className="secondary";edit.addEventListener("click",async()=>{const name=prompt("Nome da empresa:",c.name);if(!name)return;try{await api("/companies/"+c._id,{method:"PUT",body:JSON.stringify({name})});message("Empresa atualizada.");loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(edit);}
    if(currentUser.role==="adm_geral"){const del=document.createElement("button");del.textContent="Excluir";del.className="danger";del.addEventListener("click",async()=>{if(!confirm("Desativar a empresa fictícia "+c.name+"?"))return;try{const d=await api("/companies/"+c._id,{method:"DELETE"});message(d.message);loadCompanies();}catch(err){message(err.message,true);}});td.appendChild(del);}
    else td.textContent="Protegida";
    tr.appendChild(td);body.appendChild(tr);
