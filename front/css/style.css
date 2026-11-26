@@ -453,3 +453,17 @@ body{background:radial-gradient(circle at 8% 0%,#e7efff 0,transparent 28%),#f3f6
  #app.workspace .form-grid>button,#app.workspace .product-form>button{width:100%!important}
  #app.workspace .database-actions{grid-template-columns:1fr!important}
 }
+
+/* Aba Perfil — visível e acessível em todos os tamanhos de tela */
+#app.workspace>.main-nav [data-tab="profileScreen"]:before{content:"♙"!important}
+#app.workspace #profileScreen{grid-column:2!important}
+#app.workspace #profileScreen form[hidden],#app.workspace #profileScreen button[hidden]{display:none!important}
+#app.workspace #profileScreen #showChangePassword{margin:8px 0 16px;background:#eaf0ff!important;color:#1948a5!important;border:1px solid #d5e2ff!important}
+#app.workspace #profileScreen #profilePasswordForm{padding:18px;margin:14px 0;border:1px solid #e3eaf4;border-radius:14px;background:#f8faff}
+#app.workspace #profileScreen #cancelChangePassword{background:#e9edf4!important;color:#465873!important}
+@media(max-width:760px){
+ #app.workspace>.main-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+ #app.workspace>.main-nav [data-tab="profileScreen"]{display:flex!important}
+ #app.workspace>.main-nav .tab-button{font-size:8px!important}
+ #app.workspace #profileScreen{width:100%!important}
+}
