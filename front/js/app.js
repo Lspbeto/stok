@@ -23,8 +23,7 @@ $("backFromFirstAccess").addEventListener("click",()=>{$("firstAccessEmailScreen
 $("backFromFirstAccessSetup").addEventListener("click",()=>{$("firstAccessSetupScreen").hidden=true;$("firstAccessEmailScreen").hidden=false;});
 $("firstAccessRequestForm").addEventListener("submit",async e=>{e.preventDefault();try{const email=$("firstAccessEmail").value.trim();const d=await api("/auth/first-access/request",{method:"POST",body:JSON.stringify({email})});window.stokFirstAccessEmail=email;$("firstAccessEmailScreen").hidden=true;$("firstAccessSetupScreen").hidden=false;message(d.message);}catch(err){message(err.message,true);}});
 $("firstAccessSetupForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/first-access/complete",{method:"POST",body:JSON.stringify({email:window.stokFirstAccessEmail,code:$("firstAccessCode").value,displayName:$("firstAccessDisplayName").value,loginName:$("firstAccessLoginName").value,password:$("firstAccessPassword").value})});token=d.token;localStorage.setItem("stok_token",token);e.target.reset();showLoggedIn(d.user);message(d.message);}catch(err){message(err.message,true);}});
-// Alterna entre login e cadastro mantendo o mesmo cartão visual.
-$("showRegister").addEventListener("click",()=>{$("login").hidden=true;$("firstAccessEmailScreen").hidden=false;});
+// O cadastro de contas é exclusivo da administração; usuários existentes usam Primeiro acesso.
 $("backToLogin").addEventListener("click",()=>{$("registerScreen").hidden=true;$("login").hidden=false;});
 $("showForgotPassword").addEventListener("click",()=>{$("login").hidden=true;$("forgotScreen").hidden=false;});
 $("backFromForgot").addEventListener("click",()=>{$("forgotScreen").hidden=true;$("login").hidden=false;});
