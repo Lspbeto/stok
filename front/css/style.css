@@ -467,3 +467,12 @@ body{background:radial-gradient(circle at 8% 0%,#e7efff 0,transparent 28%),#f3f6
  #app.workspace>.main-nav .tab-button{font-size:8px!important}
  #app.workspace #profileScreen{width:100%!important}
 }
+
+/* Indicadores consolidados do relatório multiempresa */
+.summary-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 10px;color:#344054}
+.summary-heading span{font-size:.9rem;color:#667085}
+.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.summary-card{background:#f8fafc;border:1px solid #e4e7ec;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.summary-card span{font-size:.85rem;color:#667085}
+.summary-card strong{font-size:1.7rem;color:#101828;font-variant-numeric:tabular-nums}
+@media(max-width:720px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-card{padding:12px}.summary-card strong{font-size:1.4rem}}
