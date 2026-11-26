@@ -34,8 +34,10 @@ router.post("/login", async (req, res, next) => {
   try {
     const loginName = normalizeLoginName(req.body.loginName);
     const password = String(req.body.password || "");
-    const user = await User.findOne({ loginName }).select("+passwordHash");
-    if (!user || !user.active || !user.loginName || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "Login ou senha incorretos. Se ainda não configurou seu login, utilize Primeiro acesso." });
+    // Compatibilidade temporária: usuários antigos ainda podem entrar com o e-mail
+    // e definir seu novo login em Meu Perfil, sem perder o acesso após a atualização.
+    const user = await User.findOne({ $or: [{ loginName }, { email: loginName }] }).select("+passwordHash");
+    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "Login ou senha incorretos. Se ainda não configurou seu acesso, utilize Primeiro acesso." });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
     res.json({ token, user: await fullPublicUser(user) });
   } catch (err) { next(err); }
