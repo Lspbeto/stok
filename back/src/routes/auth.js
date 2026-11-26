@@ -9,6 +9,11 @@ const Company = require("../models/Company");
 const { auth, roleOf } = require("../middleware/auth");
 const GENERAL_ADMINS = new Set(["lspbeto@gmail.com", "lspbeto@yahoo.com.br"]);
 function publicUser(user) { return { id: user._id, name: user.name, displayName: user.displayName || user.name, loginName: user.loginName || "", email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: roleOf(user), sector: user.sector || "", companyId: user.companyId || null, active: user.active }; }
+async function fullPublicUser(user) {
+  const data = publicUser(user);
+  if (user.companyId) { const company = await Company.findById(user.companyId).select("name"); data.companyName = company?.name || ""; }
+  return data;
+}
 function normalizeLoginName(value) { return String(value || "").normalize("NFC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR"); }
 async function sendFirstAccessEmail(user, code) {
   const subject = "STOK - Código para primeiro acesso";
@@ -32,7 +37,7 @@ router.post("/login", async (req, res, next) => {
     const user = await User.findOne({ loginName }).select("+passwordHash");
     if (!user || !user.active || !user.loginName || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "Login ou senha incorretos. Se ainda não configurou seu login, utilize Primeiro acesso." });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
-    res.json({ token, user: publicUser(user) });
+    res.json({ token, user: await fullPublicUser(user) });
   } catch (err) { next(err); }
 });
 // Lista apenas nomes de empresas para permitir que o novo operador escolha seu vínculo.
@@ -80,7 +85,7 @@ router.post("/first-access/complete", async (req, res, next) => {
     user.firstAccessCodeSentAt = null;
     await user.save();
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
-    res.json({ message: "Primeiro acesso configurado com sucesso.", token, user: publicUser(user) });
+    res.json({ message: "Primeiro acesso configurado com sucesso.", token, user: await fullPublicUser(user) });
   } catch (err) { if (err.code === 11000) return res.status(409).json({ message: "Este login já está em uso. Escolha outro." }); next(err); }
 });
 
@@ -131,7 +136,7 @@ router.post("/reset-password", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/me", auth, (req, res) => res.json(publicUser(req.user)));
+router.get("/me", auth, async (req, res, next) => { try { res.json(await fullPublicUser(req.user)); } catch (err) { next(err); } });
 
 router.put("/me", auth, async (req, res, next) => {
   try {
@@ -144,7 +149,7 @@ router.put("/me", auth, async (req, res, next) => {
     req.user.displayName = displayName;
     req.user.loginName = loginName;
     await req.user.save();
-    res.json({ message: "Perfil atualizado.", user: publicUser(req.user) });
+    res.json({ message: "Perfil atualizado.", user: await fullPublicUser(req.user) });
   } catch (err) { if (err.code === 11000) return res.status(409).json({ message: "Este login já está em uso." }); next(err); }
 });
 
