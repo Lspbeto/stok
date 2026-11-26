@@ -476,3 +476,15 @@ body{background:radial-gradient(circle at 8% 0%,#e7efff 0,transparent 28%),#f3f6
 .summary-card span{font-size:.85rem;color:#667085}
 .summary-card strong{font-size:1.7rem;color:#101828;font-variant-numeric:tabular-nums}
 @media(max-width:720px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-card{padding:12px}.summary-card strong{font-size:1.4rem}}
+
+/* Perfil unificado para todos os níveis de acesso */
+#app.workspace #profileScreen{max-width:980px;margin-left:auto;margin-right:auto}
+#app.workspace #profileScreen .profile-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+#app.workspace #profileScreen .profile-header h2{margin:0 0 6px}
+#app.workspace #profileScreen .profile-header p{margin:0;color:#68768c}
+#app.workspace #profileScreen .profile-role-badge{display:inline-flex;align-items:center;padding:8px 13px;border-radius:999px;background:#edf3ff;border:1px solid #dce7ff;color:#1948a5;font-size:13px;font-weight:750}
+#app.workspace #profileScreen .profile-access-card{padding:17px 19px;margin:18px 0 22px;border:1px solid #dce7f7;border-left:4px solid #2862d5;border-radius:12px;background:#f7f9ff}
+#app.workspace #profileScreen .profile-access-card strong{display:block;color:#243b5a;margin-bottom:5px}
+#app.workspace #profileScreen .profile-access-card p{margin:0;color:#52627a;line-height:1.5}
+#app.workspace #profileScreen #showChangePassword{margin:8px 0 16px}
+@media(max-width:600px){#app.workspace #profileScreen .profile-header{display:block}#app.workspace #profileScreen .profile-role-badge{margin-top:12px}}
