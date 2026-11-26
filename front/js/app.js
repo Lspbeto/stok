@@ -33,7 +33,31 @@ if(resetToken){token=null;localStorage.removeItem("stok_token");$("app").hidden=
 $("resetForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/reset-password",{method:"POST",body:JSON.stringify({token:resetToken,password:$("resetPassword").value})});message(d.message);window.history.replaceState({},"",window.location.pathname);$("resetScreen").hidden=true;$("login").hidden=false;resetToken=null;e.target.reset();}catch(err){message(err.message,true);}});
 $("registerForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value,sector:$("registerSector").value,registrationNumber:$("registerRegistrationNumber").value,companyId:$("registerCompany").value})});token=d.token;localStorage.setItem("stok_token",token);showLoggedIn(d.user);e.target.reset();message("Conta de operador criada. Setor: "+d.user.sector);}catch(err){message(err.message,true);}});
 $("logout").addEventListener("click",()=>{token=null;currentUser=null;localStorage.removeItem("stok_token");$("app").hidden=true;$("registerScreen").hidden=true;$("forgotScreen").hidden=true;$("resetScreen").hidden=true;$("firstAccessEmailScreen").hidden=true;$("firstAccessSetupScreen").hidden=true;$("login").hidden=false;});
-function openProfile(){if(!currentUser)return;document.querySelectorAll(".tab").forEach(x=>x.hidden=true);$("profileScreen").hidden=false;document.querySelectorAll(".tab-button").forEach(b=>b.classList.toggle("active",b.dataset.tab==="profileScreen"));$("profileDisplayName").value=currentUser.displayName||currentUser.name||"";$("profileLoginName").value=currentUser.loginName||"";$("profileEmail").value=currentUser.email||"";$("profileRegistrationNumber").value=currentUser.registrationNumber||"—";$("profileRole").value=currentUser.role||"";$("profileCompanySector").value=[currentUser.companyName,currentUser.sector].filter(Boolean).join(" / ")||"—";$("profilePasswordForm").hidden=true;$("showChangePassword").hidden=false;}
+function openProfile(){
+ if(!currentUser)return;
+ document.querySelectorAll(".tab").forEach(x=>x.hidden=true);
+ $("profileScreen").hidden=false;
+ document.querySelectorAll(".tab-button").forEach(b=>b.classList.toggle("active",b.dataset.tab==="profileScreen"));
+ const roleLabels={adm_geral:"ADM Geral",adm_empresa:"ADM Empresarial",adm_setor:"ADM de Setor",operador:"Operador"};
+ const accessDescriptions={
+  adm_geral:"Acesso geral a todas as empresas, usuários, produtos, movimentações e relatórios do STOK.",
+  adm_empresa:"Acesso administrativo limitado aos dados e usuários da própria empresa.",
+  adm_setor:"Acesso limitado às atividades e informações permitidas do setor vinculado.",
+  operador:"Acesso operacional conforme as permissões atribuídas na empresa."
+ };
+ const isGeneral=currentUser.role==="adm_geral";
+ $("profileDisplayName").value=currentUser.displayName||currentUser.name||"";
+ $("profileLoginName").value=currentUser.loginName||"";
+ $("profileEmail").value=currentUser.email||"";
+ $("profileRegistrationNumber").value=currentUser.registrationNumber||"—";
+ $("profileRole").value=roleLabels[currentUser.role]||currentUser.role||"—";
+ $("profileRoleBadge").textContent=roleLabels[currentUser.role]||"Perfil";
+ $("profileCompanySector").value=isGeneral?"Todas as empresas":[currentUser.companyName,currentUser.sector].filter(Boolean).join(" / ")||"Não informado";
+ $("profileAccess").textContent=accessDescriptions[currentUser.role]||"Acesso conforme as permissões da conta.";
+ $("profilePasswordForm").hidden=true;
+ $("profilePasswordForm").reset();
+ $("showChangePassword").hidden=false;
+}
 $("openProfile").addEventListener("click",openProfile);
 $("showChangePassword").addEventListener("click",()=>{$("profilePasswordForm").hidden=false;$("showChangePassword").hidden=true;$("profileCurrentPassword").focus();});
 $("cancelChangePassword").addEventListener("click",()=>{$("profilePasswordForm").reset();$("profilePasswordForm").hidden=true;$("showChangePassword").hidden=false;});
