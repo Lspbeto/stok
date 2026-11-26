@@ -1,6 +1,6 @@
 // Interface do STOK: estoque, entregas, usuários, histórico e relatórios.
 const API = window.STOK_CONFIG.API_URL.replace(/\/$/, "");
-let token = localStorage.getItem("stok_token"), currentUser = null, cachedMovements = [], cachedProducts = [];
+let token = localStorage.getItem("stok_token"), currentUser = null, cachedMovements = [], cachedProducts = [], cachedSummary = null;
 const $ = id => document.getElementById(id);
 function message(text, error=false) { $("message").textContent=text; $("message").style.color=error?"#b42318":"#167044"; }
 async function api(path, options={}) {
@@ -10,7 +10,7 @@ async function api(path, options={}) {
   return data;
 }
 function showLoggedIn(user) {
-  currentUser=user; $("app").classList.add("workspace"); $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("firstAccessEmailScreen").hidden=true; $("firstAccessSetupScreen").hidden=true; $("profileScreen").hidden=true; $("app").hidden=false;
+  currentUser=user; cachedSummary=null; $("summaryPanel").hidden=user.role!=="adm_geral"; $("app").classList.add("workspace"); $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("firstAccessEmailScreen").hidden=true; $("firstAccessSetupScreen").hidden=true; $("profileScreen").hidden=true; $("app").hidden=false;
   $("welcome").textContent="Olá, "+(user.displayName||user.name)+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("historyCompanyWrap").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
   $("productForm").hidden=!["adm_geral","adm_empresa"].includes(user.role);
@@ -127,9 +127,17 @@ async function stockMove(p,type){const raw=prompt("Quantidade para "+(type==="EN
 function dateParams(){const p=new URLSearchParams();if(currentUser?.role==="adm_geral"&&$("historyCompany").value)p.set("companyId",$("historyCompany").value);if($("fromDate").value)p.set("from",$("fromDate").value);if($("toDate").value)p.set("to",$("toDate").value);return p.toString();}
 $("filterHistory").addEventListener("click",loadHistory);
 $("historySearch").addEventListener("input",renderHistory);
-async function loadHistory(){try{[cachedMovements,cachedProducts]=await Promise.all([api("/movements?"+dateParams()),api("/products")]);renderHistory();}catch(err){message(err.message,true);}}
+async function loadHistory(){try{const requests=[api("/movements?"+dateParams()),api("/products")];if(currentUser?.role==="adm_geral")requests.push(api("/companies/summary?"+dateParams()));[cachedMovements,cachedProducts,cachedSummary]=await Promise.all(requests);renderHistory();}catch(err){message(err.message,true);}}
+$("historyCompany").addEventListener("change",loadHistory);
 const DESTINATION_LABELS={DEVOLUCAO:"Devolvido ao estoque",CONSUMO:"Consumido",EXTRAVIO:"Extraviado",DOACAO:"Doado",VENDA:"Vendido",TRANSFERENCIA:"Transferido",OUTRO:"Outro destino"};
 function renderHistory(){
+ if(cachedSummary){
+  $("summaryScope").textContent=cachedSummary.scope==="all"?"Todas as empresas":(cachedSummary.companyName||"Empresa selecionada");
+  $("summaryCompanies").textContent=cachedSummary.companies.toLocaleString("pt-BR");
+  $("summaryProducts").textContent=cachedSummary.products.toLocaleString("pt-BR");
+  $("summaryMovements").textContent=cachedSummary.movements.toLocaleString("pt-BR");
+  $("summaryUsers").textContent=cachedSummary.users.toLocaleString("pt-BR");
+ }
  const term=($("historySearch").value||"").trim().toLocaleLowerCase("pt-BR");
  const rows=cachedMovements.filter(m=>[m.userName,m.role,m.action,m.productName,m.details,m.sector,m.destination,...(m.allocations||[]).flatMap(a=>[a.note,a.targetSector,a.type])].join(" ").toLocaleLowerCase("pt-BR").includes(term));
  $("historyBody").replaceChildren();
@@ -138,7 +146,7 @@ function renderHistory(){
   const destination=DESTINATION_LABELS[allocation.type||m.destination]||allocation.type||m.destination||"—";
   const note=allocation.note||m.details||"—";
   const tr=document.createElement("tr");
-  [new Date(m.createdAt).toLocaleString("pt-BR"),m.userName,m.role,m.action,m.productName,(m.quantity??"")+(m.unit?" "+m.unit:""),destination,m.sector||"—",note].forEach(v=>{const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});
+  [m.companyId?.name||"Sem empresa",new Date(m.createdAt).toLocaleString("pt-BR"),m.userName,m.role,m.action,m.productName,(m.quantity??"")+(m.unit?" "+m.unit:""),destination,m.sector||"—",note].forEach(v=>{const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});
   $("historyBody").appendChild(tr);
  });
  const catalog=$("registeredItemsBody");
@@ -146,7 +154,7 @@ function renderHistory(){
   catalog.replaceChildren();
   cachedProducts.forEach(p=>{
    const tr=document.createElement("tr");
-   const vals=[p.name,p.category==="BEM"?"Bem permanente":"Mercadoria / consumo",p.category==="BEM"?(p.patrimonyCode||"—"):(p.code||"—"),p.category==="BEM"?"1":(p.quantity??0),p.unit||"un",p.responsibleSector||"—",p.description||p.condition||"—"];
+   const vals=[p.companyId?.name||"Sem empresa",p.name,p.category==="BEM"?"Bem permanente":"Mercadoria / consumo",p.category==="BEM"?(p.patrimonyCode||"—"):(p.code||"—"),p.category==="BEM"?"1":(p.quantity??0),p.unit||"un",p.responsibleSector||"—",p.description||p.condition||"—"];
    vals.forEach(v=>{const td=document.createElement("td");td.textContent=v??"—";tr.appendChild(td);});
    catalog.appendChild(tr);
   });
