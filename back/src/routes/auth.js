@@ -27,10 +27,10 @@ async function sendFirstAccessEmail(user, code) {
 }
 router.post("/login", async (req, res, next) => {
   try {
-    const email = String(req.body.email || "").toLowerCase().trim();
+    const loginName = normalizeLoginName(req.body.loginName);
     const password = String(req.body.password || "");
-    const user = await User.findOne({ email }).select("+passwordHash");
-    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "E-mail ou senha incorretos." });
+    const user = await User.findOne({ loginName }).select("+passwordHash");
+    if (!user || !user.active || !user.loginName || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ message: "Login ou senha incorretos. Se ainda não configurou seu login, utilize Primeiro acesso." });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
     res.json({ token, user: publicUser(user) });
   } catch (err) { next(err); }
@@ -85,27 +85,7 @@ router.post("/first-access/complete", async (req, res, next) => {
 });
 
 // Cadastro aberto: cria sempre operador e exige empresa e setor.
-router.post("/register", async (req, res, next) => {
-  try {
-    const name = String(req.body.name || "").trim();
-    const email = String(req.body.email || "").toLowerCase().trim();
-    const password = String(req.body.password || "");
-    const sector = String(req.body.sector || "").trim();
-    const registrationNumber = String(req.body.registrationNumber || "").trim();
-    const companyId = req.body.companyId;
-    if (GENERAL_ADMINS.has(email)) return res.status(403).json({ message: "Este e-mail é reservado para provisionamento de ADM Geral." });
-    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || !sector || !registrationNumber || !companyId) {
-      return res.status(400).json({ message: "Informe nome, e-mail válido, senha com pelo menos 8 caracteres, empresa, setor e número de cadastro." });
-    }
-    if (!await Company.exists({ _id: companyId, active: true })) return res.status(400).json({ message: "Selecione uma empresa válida." });
-    if (await User.exists({ email })) return res.status(409).json({ message: "Este e-mail já está cadastrado." });
-    if (await User.exists({ registrationNumber })) return res.status(409).json({ message: "Este número de cadastro já está em uso." });
-    const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, passwordHash, registrationNumber, isFictional: registrationNumber.startsWith("0.0"), companyId, sector, role: "operador", active: true });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
-    res.status(201).json({ message: "Conta de operador criada com sucesso.", token, user: publicUser(user) });
-  } catch (err) { next(err); }
-});
+router.post("/register", (_req, res) => res.status(403).json({ message: "O cadastro é feito pela administração. Se você já foi cadastrado, utilize Primeiro acesso para configurar seu login." }));
 
 /* Solicita link de recuperação. A resposta não revela se o e-mail existe. */
 router.post("/forgot-password", async (req, res, next) => {
