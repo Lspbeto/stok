@@ -10,7 +10,7 @@ async function api(path, options={}) {
   return data;
 }
 function showLoggedIn(user) {
-  currentUser=user; $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("firstAccessEmailScreen").hidden=true; $("firstAccessSetupScreen").hidden=true; $("profileScreen").hidden=true; $("app").hidden=false;
+  currentUser=user; $("app").classList.add("workspace"); $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("firstAccessEmailScreen").hidden=true; $("firstAccessSetupScreen").hidden=true; $("profileScreen").hidden=true; $("app").hidden=false;
   $("welcome").textContent="Olá, "+(user.displayName||user.name)+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("historyCompanyWrap").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
   $("productForm").hidden=!["adm_geral","adm_empresa"].includes(user.role);
