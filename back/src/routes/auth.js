@@ -9,7 +9,7 @@ const Company = require("../models/Company");
 const { auth, roleOf } = require("../middleware/auth");
 const GENERAL_ADMINS = new Set(["lspbeto@gmail.com", "lspbeto@yahoo.com.br"]);
 function publicUser(user) { return { id: user._id, name: user.name, displayName: user.displayName || user.name, loginName: user.loginName || "", email: user.email, registrationNumber: user.registrationNumber || "", isFictional: !!user.isFictional, role: roleOf(user), sector: user.sector || "", companyId: user.companyId || null, active: user.active }; }
-function normalizeLoginName(value) { return String(value || "").normalize("NFC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR"); }
+function normalizeLoginName(value) { return String(value || "").normalize("NFC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR"); }
 async function sendFirstAccessEmail(user, code) {
   const subject = "STOK - Código para primeiro acesso";
   const text = "Seu código de confirmação do STOK é " + code + ". Ele expira em 10 minutos. Se você não solicitou, ignore esta mensagem.";
@@ -42,7 +42,7 @@ router.get("/companies", async (_req,res,next)=>{try{res.json(await Company.find
 router.post("/first-access/request", async (req, res, next) => {
   try {
     const email = String(req.body.email || "").toLowerCase().trim();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return res.status(400).json({ message: "Informe um e-mail válido." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: "Informe um e-mail válido." });
     const user = await User.findOne({ email, active: true }).select("+firstAccessCodeSentAt");
     const generic = "Se o e-mail estiver cadastrado e ainda não tiver um login configurado, enviaremos um código de confirmação.";
     if (!user || user.loginName) return res.json({ message: generic });
@@ -65,7 +65,7 @@ router.post("/first-access/complete", async (req, res, next) => {
     const loginName = normalizeLoginName(req.body.loginName);
     const displayName = String(req.body.displayName || "").trim();
     const password = String(req.body.password || "");
-    if (!/^\\d{6}$/.test(code) || password.length < 8 || displayName.length < 2 || displayName.length > 60 || loginName.length < 3 || loginName.length > 40 || !/^[\\p{L}\\p{N}._ -]+$/u.test(loginName) || loginName.includes("@")) {
+    if (!/^\d{6}$/.test(code) || password.length < 8 || displayName.length < 2 || displayName.length > 60 || loginName.length < 3 || loginName.length > 40 || !/^[\p{L}\p{N}._ -]+$/u.test(loginName) || loginName.includes("@")) {
       return res.status(400).json({ message: "Confira o código, o nome de exibição, o login e a senha (mínimo de 8 caracteres)." });
     }
     const codeHash = crypto.createHash("sha256").update(code).digest("hex");
@@ -138,7 +138,7 @@ router.put("/me", auth, async (req, res, next) => {
     const displayName = String(req.body.displayName || "").trim();
     const loginName = normalizeLoginName(req.body.loginName);
     if (displayName.length < 2 || displayName.length > 60) return res.status(400).json({ message: "O nome de exibição deve ter entre 2 e 60 caracteres." });
-    if (loginName.length < 3 || loginName.length > 40 || !/^[\\p{L}\\p{N}._ -]+$/u.test(loginName) || loginName.includes("@")) return res.status(400).json({ message: "O login deve ter de 3 a 40 caracteres e não pode ser um e-mail." });
+    if (loginName.length < 3 || loginName.length > 40 || !/^[\p{L}\p{N}._ -]+$/u.test(loginName) || loginName.includes("@")) return res.status(400).json({ message: "O login deve ter de 3 a 40 caracteres e não pode ser um e-mail." });
     const duplicate = await User.findOne({ loginName, _id: { $ne: req.user._id } });
     if (duplicate) return res.status(409).json({ message: "Este login já está em uso. Escolha outro." });
     req.user.displayName = displayName;
