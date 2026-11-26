@@ -21,7 +21,7 @@ function showLoggedIn(user) {
     return;
   }
   currentUser=user; cachedSummary=null; $("summaryPanel").hidden=user.role!=="adm_geral"; $("app").classList.add("workspace"); $("login").hidden=true; $("registerScreen").hidden=true; $("forgotScreen").hidden=true; $("resetScreen").hidden=true; $("firstAccessEmailScreen").hidden=true; $("firstAccessSetupScreen").hidden=true; $("profileScreen").hidden=true; $("app").hidden=false;
-  $("welcome").textContent="Olá, "+(user.displayName||user.name)+" ("+user.role+")"; $("usersTab").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("databaseTab").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("historyCompanyWrap").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
+  $("welcome").textContent="Olá, "+(user.displayName||user.name)+" ("+user.role+")"; $("managementTab").hidden=false; $("manageUsersButton").hidden=!["adm_geral","adm_empresa"].includes(user.role); $("manageDatabaseButton").hidden=user.role!=="adm_geral"; $("databaseTools").hidden=true; $("managementHome").hidden=true; $("companyForm").hidden=user.role!=="adm_geral"; $("historyCompanyWrap").hidden=user.role!=="adm_geral"; $("productCompanyWrap").hidden=user.role!=="adm_geral"; $("userCompanyWrap").hidden=user.role!=="adm_geral"; $("userRole").innerHTML=user.role==="adm_geral"?"<option value=\"adm_empresa\">ADM Empresarial</option><option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>":"<option value=\"adm_setor\">ADM de Setor</option><option value=\"operador\">Operador</option>";
   loadProducts();
   $("productForm").hidden=!["adm_geral","adm_empresa"].includes(user.role);
   if(["adm_geral","adm_empresa"].includes(user.role)) loadCompanies();
@@ -74,10 +74,20 @@ $("cancelChangePassword").addEventListener("click",()=>{$("profilePasswordForm")
 $("closeProfile").addEventListener("click",()=>{$("profileScreen").hidden=true;document.querySelectorAll(".tab-button").forEach(b=>b.classList.toggle("active",b.dataset.tab==="products"));$("products").hidden=false;loadProducts();});
 $("profileForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/auth/me",{method:"PUT",body:JSON.stringify({displayName:$("profileDisplayName").value,loginName:$("profileLoginName").value})});currentUser=d.user;$("welcome").textContent="Olá, "+(currentUser.displayName||currentUser.name)+" ("+currentUser.role+")";message(d.message);}catch(err){message(err.message,true);}});
 $("profilePasswordForm").addEventListener("submit",async e=>{e.preventDefault();if($("profileNewPassword").value!==$("profileConfirmPassword").value){message("A confirmação da nova senha não confere.",true);return;}try{const d=await api("/auth/me/password",{method:"PUT",body:JSON.stringify({currentPassword:$("profileCurrentPassword").value,newPassword:$("profileNewPassword").value})});e.target.reset();e.target.hidden=true;$("showChangePassword").hidden=false;message(d.message);}catch(err){message(err.message,true);}});
+function showManagementSection(section){
+  const allowed={history:true,users:["adm_geral","adm_empresa"].includes(currentUser?.role),databaseTools:currentUser?.role==="adm_geral"};
+  if(!allowed[section]){message("Você não tem permissão para acessar esta área.",true);section="history";}
+  document.querySelectorAll(".tab").forEach(x=>x.hidden=!(x.id==="managementHome"||x.id===section));
+  document.querySelectorAll(".management-shortcut").forEach(x=>x.classList.toggle("active",x.dataset.manageTab===section));
+  if(section==="history")loadHistory();
+  if(section==="users")loadCompanies();
+}
+document.querySelectorAll("[data-manage-tab]").forEach(b=>b.addEventListener("click",()=>showManagementSection(b.dataset.manageTab)));
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.hidden=x.id!==b.dataset.tab);
   document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("active",x===b));
   if(b.dataset.tab==="profileScreen"){openProfile();return;}
+  if(b.dataset.tab==="management"){showManagementSection("history");return;}
   if(b.dataset.tab==="history")loadHistory();
   if(b.dataset.tab==="users")loadCompanies();
   if(b.dataset.tab==="products")loadProducts();
