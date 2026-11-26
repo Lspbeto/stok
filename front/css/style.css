@@ -406,3 +406,50 @@ body:has(#app.workspace:not([hidden])) .brand{display:none}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* STOK 2.1 — reforço visual e compatibilidade mobile */
+:root{
+  --stok-ink:#17243b;
+  --stok-muted:#718096;
+  --stok-border:#e2e8f0;
+  --stok-surface:#fff;
+  --stok-canvas:#f3f6fb;
+}
+body{background:radial-gradient(circle at 8% 0%,#e7efff 0,transparent 28%),#f3f6fb!important}
+.container{max-width:1560px!important;padding:24px 30px!important}
+#app.workspace{display:grid!important;grid-template-columns:260px minmax(0,1fr)!important;gap:20px!important;align-items:start}
+#app.workspace>.toolbar{grid-column:1/-1!important;display:flex!important;align-items:center!important;min-height:78px!important;padding:14px 22px!important;border:1px solid #e3eaf4!important;border-radius:18px!important;background:#fff!important;box-shadow:0 10px 32px rgba(30,55,95,.07)!important}
+#app.workspace>.toolbar:before{content:"STOK"!important;font-size:25px!important;font-weight:950!important;letter-spacing:3px!important;color:#17439c!important}
+#app.workspace>.toolbar:after{content:"CONTROLE • ESTOQUE • GESTÃO"!important;font-size:10px!important;letter-spacing:1.2px!important;color:#8290a5!important}
+#app.workspace>.main-nav{grid-column:1!important;grid-row:2!important;position:sticky!important;top:98px!important;display:flex!important;flex-direction:column!important;gap:8px!important;padding:16px 12px!important;margin:0!important;border:1px solid #e3eaf4!important;border-radius:18px!important;background:#fff!important;box-shadow:0 10px 32px rgba(30,55,95,.06)!important}
+#app.workspace>.main-nav:before{content:"NAVEGAÇÃO PRINCIPAL"!important;padding:8px 12px 14px!important;color:#8a98ad!important;font-size:10px!important;font-weight:850!important;letter-spacing:1.2px!important}
+#app.workspace>.main-nav .tab-button{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;min-height:49px!important;width:100%!important;min-width:0!important;padding:12px 14px!important;border:1px solid transparent!important;border-radius:12px!important;text-align:left!important;font-size:13px!important;font-weight:700!important;color:#52627a!important;background:transparent!important;box-shadow:none!important}
+#app.workspace>.main-nav .tab-button.active{color:#17439c!important;background:#edf3ff!important;border-color:#dce7ff!important;box-shadow:inset 3px 0 #2862d5!important}
+#app.workspace>.panel{grid-column:2!important;min-width:0!important;margin:0 0 18px!important;padding:26px!important;border:1px solid #e4eaf2!important;border-radius:18px!important;background:#fff!important;box-shadow:0 10px 32px rgba(30,55,95,.055)!important}
+#app.workspace>.panel h2{font-size:23px!important;font-weight:800!important;letter-spacing:-.55px!important;color:#1c3154!important}
+#app.workspace>.panel h3{font-size:16px!important;font-weight:800!important;color:#344b70!important}
+#app.workspace label{font-weight:650!important;color:#465873!important}
+#app.workspace input,#app.workspace select{min-height:43px!important;border:1px solid #d9e2ef!important;border-radius:10px!important;background:#fbfcff!important}
+#app.workspace button{border-radius:10px!important;font-weight:700!important}
+#app.workspace .table-wrap{border-radius:13px!important;border-color:#e4eaf2!important}
+#app.workspace th{background:#f2f5fa!important;color:#66768f!important}
+@media(max-width:760px){
+ .container{padding:12px 12px 100px!important}
+ #app.workspace{display:flex!important;flex-direction:column!important;gap:12px!important;width:100%!important}
+ #app.workspace>.toolbar{position:relative!important;top:auto!important;width:100%!important;min-height:66px!important;padding:12px!important;gap:8px!important;flex-wrap:wrap!important;border-radius:14px!important}
+ #app.workspace>.toolbar:before{font-size:20px!important}
+ #app.workspace>.toolbar:after{display:none!important}
+ #app.workspace>.toolbar #welcome{order:4!important;flex:1 0 100%!important;margin:0!important;padding-top:8px!important;border-top:1px solid #edf0f5!important;font-size:12px!important}
+ #app.workspace>.toolbar>div{margin-left:auto!important}
+ #app.workspace>.toolbar button{min-height:36px!important;padding:8px 10px!important;font-size:12px!important}
+ #app.workspace>.main-nav{position:fixed!important;z-index:100!important;left:8px!important;right:8px!important;top:auto!important;bottom:max(8px,env(safe-area-inset-bottom))!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;flex-direction:initial!important;gap:3px!important;margin:0!important;padding:7px 4px!important;border:1px solid #dce5f2!important;border-radius:16px!important;box-shadow:0 10px 34px rgba(20,38,68,.2)!important;background:rgba(255,255,255,.98)!important}
+ #app.workspace>.main-nav:before{display:none!important}
+ #app.workspace>.main-nav .tab-button{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;gap:4px!important;min-width:0!important;min-height:54px!important;padding:5px 1px!important;border-radius:10px!important;text-align:center!important;white-space:normal!important;font-size:9px!important;line-height:1.15!important}
+ #app.workspace>.main-nav .tab-button:before{width:22px!important;height:22px!important;flex:0 0 22px!important;font-size:14px!important}
+ #app.workspace>.panel{width:100%!important;margin:0 0 12px!important;padding:18px 14px!important;border-radius:14px!important}
+ #app.workspace>.panel h2{font-size:19px!important}
+ #app.workspace .form-grid{grid-template-columns:minmax(0,1fr)!important}
+ #app.workspace .form-grid>button,#app.workspace .product-form>button{width:100%!important}
+ #app.workspace .database-actions{grid-template-columns:1fr!important}
+}
